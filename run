@@ -1,0 +1,43 @@
+#!/bin/bash
+
+error()
+{
+    echo "ERROR: Wrong usage."
+    echo "Usage: [debug|release|d|r] [-- args...]"
+    exit
+}
+
+if [ $# -eq 0 ]; then
+    bin/debug/bx
+    exit
+fi
+
+MODE=debug
+
+i=1
+
+case ${@:$i:1} in
+    'debug'|'d')
+        ((i++))
+        ;;
+    'release'|'r')
+        MODE=release
+        ((i++))
+        ;;
+    '--')
+        ;;
+    *)
+        error
+        ;;
+esac
+
+if [ $i -le $# ]; then
+    if [ ${@:$i:1} != "--" ]; then
+        error
+    fi
+    ((i++))
+fi
+
+ARGS=${@:$i}
+
+bin/$MODE/bx $ARGS

@@ -1,0 +1,9 @@
+obj/
+bin/
+.DS_Store
+Makefile
+*.make
+.cache
+compile_commands/
+compile_commands.json
+
