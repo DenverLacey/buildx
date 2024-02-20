@@ -46,7 +46,12 @@ bool iter_check_flags(ArgIter *iter, const char *const *flags) {
     }
 
     if (is_short(arg)) {
-        return strchr(arg, flags[0][0]);
+        for (const char *c = &arg[1]; *c != '\0'; c++) {
+            if (*c == flags[0][0]) {
+                return true;
+            }
+        }
+        return false;
     } else if (is_long(arg)) {
         return strcmp(&arg[2], flags[1]) == 0;
     } else {

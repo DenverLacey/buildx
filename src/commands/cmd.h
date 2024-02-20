@@ -4,7 +4,7 @@
 #include "argiter.h"
 #include "errors.h"
 
-typedef ResultCode(*CmdFunc)(ArgIter *args);
+typedef ResultCode(*CmdFunc)(ArgIter *args, void *cmd_data);
 
 typedef struct CmdFlagInfo {
 	union {

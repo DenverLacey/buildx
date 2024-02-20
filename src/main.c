@@ -26,10 +26,7 @@ int main(int argc, const char **argv) {
     }
 
     if (iter_match(&args, "new")) {
-        ResultCode result = cmd_new(&args);
-        if (result != OK) {
-            usage();
-        }
+        cmd_new(&args);
     } else if (iter_match(&args, "build")) {
         // TODO: Implement `build` command.
         assert(false);
