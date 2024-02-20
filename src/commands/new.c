@@ -3,8 +3,11 @@
 #include "cmd.h"
 #include "errors.h"
 #include "utils.h"
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/errno.h>
+#include <sys/stat.h>
 
 typedef enum Dialect {
     C99 = 0,
@@ -167,10 +170,7 @@ const CmdFlagInfo flags[] = {
 
 const size_t flags_length = sizeof(flags) / sizeof(flags[0]);
 
-ResultCode cmd_new(ArgIter *args) {
-    CmdNewData cmd_data = {0};
-
-    // Process options
+ResultCode process_options(ArgIter *args, CmdNewData *cmd_data) {
     while (args->length != 0) {
         bool flag_found = false;
 
@@ -179,7 +179,7 @@ ResultCode cmd_new(ArgIter *args) {
             if (iter_check_flags(args, flag->names)) {
                 iter_next(args);
                 flag_found = true;
-                ResultCode result = flag->cmd(args, &cmd_data);
+                ResultCode result = flag->cmd(args, cmd_data);
                 if (result != OK) {
                     usage_new();
                     return result;
@@ -193,13 +193,79 @@ ResultCode cmd_new(ArgIter *args) {
     }
 
     if (args->length != 0) {
-        cmd_data.project_name = iter_next(args);
-        if (!cmd_data.executable_name) {
-            cmd_data.executable_name = cmd_data.project_name;
+        cmd_data->project_name = iter_next(args);
+        if (!cmd_data->executable_name) {
+            cmd_data->executable_name = cmd_data->project_name;
         }
     }
 
-    // TODO: Actually make a new project folder.
+    return OK;
+}
+
+ResultCode make_project_directories(CmdNewData *cmd_data) {
+    if (cmd_data->project_name) {
+        int status = mkdir(cmd_data->project_name, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        if (status == -1 && errno != EEXIST) {
+            const char *err = strerror(errno);
+            printf("ERROR: Failed to create project directory: %s.\n", err);
+            return FAIL_CREATE_DIRECTORY;
+        }
+    }
+
+    int status;
+    char path[1024];
+    const char *proj_dir = cmd_data->project_name ? cmd_data->project_name : ".";
+    const char *out_dir = cmd_data->output_dir ? cmd_data->output_dir : "bin";
+    const char *src_dir = cmd_data->src_dir ? cmd_data->src_dir : "src";
+
+    snprintf(path, sizeof(path), "%s/%s", proj_dir, out_dir);
+    status = mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    if (status == -1 && errno != EEXIST) {
+        const char *err = strerror(errno);
+        printf("ERROR: Failed to create output directory: %s\n", err);
+        return FAIL_CREATE_DIRECTORY;
+    }
+
+    snprintf(path, sizeof(path), "%s/%s/debug", proj_dir, out_dir);
+    status = mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    if (status == -1 && errno != EEXIST) {
+        const char *err = strerror(errno);
+        printf("ERROR: Failed to create debug output directory: %s\n", err);
+        return FAIL_CREATE_DIRECTORY;
+    }
+
+    snprintf(path, sizeof(path), "%s/%s/release", proj_dir, out_dir);
+    status = mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    if (status == -1 && errno != EEXIST) {
+        const char *err = strerror(errno);
+        printf("ERROR: Failed to create release output directory: %s\n", err);
+        return FAIL_CREATE_DIRECTORY;
+    }
+
+    snprintf(path, sizeof(path), "%s/%s", proj_dir, src_dir);
+    status = mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    if (status == -1 && errno != EEXIST) {
+        const char *err = strerror(errno);
+        printf("ERROR: Failed to create source directory: %s\n", err);
+        return FAIL_CREATE_DIRECTORY;
+    }
+
+    return OK;
+}
+
+ResultCode cmd_new(ArgIter *args) {
+    ResultCode result;
+    CmdNewData cmd_data = {0};
+    
+    result = process_options(args, &cmd_data);
+    if (result != OK) {
+        return result;
+    }
+
+    result = make_project_directories(&cmd_data);
+    if (result != OK) {
+        return result;
+    }
 
     return OK;
 }
