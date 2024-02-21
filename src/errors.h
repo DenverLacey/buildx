@@ -5,7 +5,8 @@ typedef enum ResultCode {
 	OK = 0,
 	NO_ARG_VALUE,
 	BAD_ARG_VALUE,
-	FAIL_CREATE_DIRECTORY
+	FAIL_CREATE_DIRECTORY,
+	FAIL_OPEN_FILE
 } ResultCode;
 
 #endif

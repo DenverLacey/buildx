@@ -6,4 +6,5 @@ Makefile
 .cache
 compile_commands/
 compile_commands.json
+examples/
 

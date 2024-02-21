@@ -253,6 +253,33 @@ ResultCode make_project_directories(CmdNewData *cmd_data) {
     return OK;
 }
 
+ResultCode make_main_file(CmdNewData *cmd_data) {
+    const char *proj_dir = cmd_data->project_name ? cmd_data->project_name : ".";
+    const char *src_dir = cmd_data->src_dir ? cmd_data->src_dir : "src";
+    const char *ext = cmd_data->dialect < CPP11 ? "c" : "cpp";
+
+    char path[1024];
+    snprintf(path, sizeof(path), "%s/%s/main.%s", proj_dir, src_dir, ext);
+
+    FILE *f = fopen(path, "w+");
+    if (!f) {
+        if (errno == EEXIST) return OK;
+        const char *err = strerror(errno);
+        printf("ERROR: Failed to create '%s': %s\n", path, err);
+        return FAIL_OPEN_FILE;
+    }
+
+    fprintf(f, "#include <stdio.h>\n");
+    fprintf(f, "\n");
+    fprintf(f, "int main(int argc, const char **argv) {\n");
+    fprintf(f, "    printf(\"Hello, %s!\\n\");\n", cmd_data->executable_name);
+    fprintf(f, "    return 0;\n");
+    fprintf(f, "}\n");
+    fprintf(f, "\n");
+
+    return OK;
+}
+
 ResultCode cmd_new(ArgIter *args) {
     ResultCode result;
     CmdNewData cmd_data = {0};
@@ -263,6 +290,11 @@ ResultCode cmd_new(ArgIter *args) {
     }
 
     result = make_project_directories(&cmd_data);
+    if (result != OK) {
+        return result;
+    }
+
+    result = make_main_file(&cmd_data);
     if (result != OK) {
         return result;
     }
