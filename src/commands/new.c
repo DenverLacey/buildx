@@ -30,6 +30,7 @@ const char *dialect_names[] = {
 };
 
 typedef struct CmdNewData {
+    const char *project_path;
     const char *project_name;
     const char *executable_name;
     const char *output_dir;
@@ -193,7 +194,16 @@ ResultCode process_options(ArgIter *args, CmdNewData *cmd_data) {
     }
 
     if (args->length != 0) {
-        cmd_data->project_name = iter_next(args);
+        // TODO: Handle the user explicitly passed `.` as the project path
+        cmd_data->project_path = iter_next(args);
+
+        cmd_data->project_name = strrchr(cmd_data->project_path, '/');
+        if (!cmd_data->project_name) {
+            cmd_data->project_name = cmd_data->project_path;
+        } else {
+            cmd_data->project_name++; // remove leading '/'
+        }
+
         if (!cmd_data->executable_name) {
             cmd_data->executable_name = cmd_data->project_name;
         }
@@ -203,8 +213,8 @@ ResultCode process_options(ArgIter *args, CmdNewData *cmd_data) {
 }
 
 ResultCode make_project_directories(CmdNewData *cmd_data) {
-    if (cmd_data->project_name) {
-        int status = mkdir(cmd_data->project_name, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    if (cmd_data->project_path) {
+        int status = mkdir(cmd_data->project_path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
         if (status == -1 && errno != EEXIST) {
             const char *err = strerror(errno);
             printf("ERROR: Failed to create project directory: %s.\n", err);
@@ -214,7 +224,7 @@ ResultCode make_project_directories(CmdNewData *cmd_data) {
 
     int status;
     char path[1024];
-    const char *proj_dir = cmd_data->project_name ? cmd_data->project_name : ".";
+    const char *proj_dir = cmd_data->project_path ? cmd_data->project_path : ".";
     const char *out_dir = cmd_data->output_dir ? cmd_data->output_dir : "bin";
     const char *src_dir = cmd_data->src_dir ? cmd_data->src_dir : "src";
 
@@ -254,7 +264,7 @@ ResultCode make_project_directories(CmdNewData *cmd_data) {
 }
 
 ResultCode make_main_file(CmdNewData *cmd_data) {
-    const char *proj_dir = cmd_data->project_name ? cmd_data->project_name : ".";
+    const char *proj_dir = cmd_data->project_path ? cmd_data->project_path : ".";
     const char *src_dir = cmd_data->src_dir ? cmd_data->src_dir : "src";
     const char *ext = cmd_data->dialect < CPP11 ? "c" : "cpp";
 
@@ -280,6 +290,74 @@ ResultCode make_main_file(CmdNewData *cmd_data) {
     return OK;
 }
 
+ResultCode make_premake_file(CmdNewData *cmd_data) {
+    const char *proj_dir = cmd_data->project_path ? cmd_data->project_path : ".";
+    const char *out_dir = cmd_data->output_dir ? cmd_data->output_dir : "bin";
+    const char *src_dir = cmd_data->src_dir ? cmd_data->src_dir : "src";
+
+    const char *lang = cmd_data->dialect < CPP11 ? "C" : "C++";
+    
+    const char *dialect_lang = cmd_data->dialect < CPP11 ? "c" : "cpp";
+
+    char dialect[8];
+    strcpy(dialect, dialect_names[cmd_data->dialect]);
+    strupper(dialect);
+
+    char path[1024];
+    snprintf(path, sizeof(path), "%s/premake5.lua", proj_dir);
+
+    FILE *f = fopen(path, "w+");
+    if (!f) {
+        if (errno == EEXIST) return OK;
+        const char *err = strerror(errno);
+        printf("ERROR: Failed to create '%s': %s\n", path, err);
+        return FAIL_OPEN_FILE;
+    }
+
+    fprintf(f, "workspace '%s'\n", cmd_data->project_name);
+    fprintf(f, "configurations { 'debug', 'release' }\n");
+    fprintf(f, "\n");
+    fprintf(f, "project '%s'\n", cmd_data->executable_name);
+    fprintf(f, "    kind 'ConsoleApp'\n");
+    fprintf(f, "    language '%s'\n", lang);
+    fprintf(f, "    %sdialect '%s'\n", dialect_lang, dialect);
+    fprintf(f, "\n");
+    fprintf(f, "    files {\n");
+    fprintf(f, "        '%s/**.h',\n", src_dir);
+    fprintf(f, "        '%s/**.c',\n", src_dir);
+    fprintf(f, "        '%s/**.hpp',\n", src_dir);
+    fprintf(f, "        '%s/**.cpp',\n", src_dir);
+    fprintf(f, "        '%s/**.hxx',\n", src_dir);
+    fprintf(f, "        '%s/**.cxx',\n", src_dir);
+    fprintf(f, "        '%s/**.cc',\n", src_dir);
+    fprintf(f, "    }\n");
+    fprintf(f, "\n");
+    fprintf(f, "    includedirs {\n");
+    fprintf(f, "        '%s'\n", src_dir);
+    fprintf(f, "    }\n");
+    fprintf(f, "\n");
+    fprintf(f, "    filter 'action:gmake2'\n");
+    fprintf(f, "        buildoptions {\n");
+    fprintf(f, "            '-Wpedantic',\n");
+    fprintf(f, "            '-Wall',\n");
+    fprintf(f, "            '-Wextra',\n");
+    fprintf(f, "            '-Werror',\n");
+    fprintf(f, "        }\n");
+    fprintf(f, "\n");
+    fprintf(f, "    filter 'configurations:debug'\n");
+    fprintf(f, "        defines { 'DEBUG' }\n");
+    fprintf(f, "        targetdir '%s/debug'\n", out_dir);
+    fprintf(f, "        symbols 'On'\n");
+    fprintf(f, "        optimize 'Debug'\n");
+    fprintf(f, "\n");
+    fprintf(f, "    filter 'configurations:release'\n");
+    fprintf(f, "        defines { 'NDEBUG' }\n");
+    fprintf(f, "        targetdir '%s/release'\n", out_dir);
+    fprintf(f, "        optimize 'Full'\n");
+
+    return OK;
+}
+
 ResultCode cmd_new(ArgIter *args) {
     ResultCode result;
     CmdNewData cmd_data = {0};
@@ -295,6 +373,11 @@ ResultCode cmd_new(ArgIter *args) {
     }
 
     result = make_main_file(&cmd_data);
+    if (result != OK) {
+        return result;
+    }
+
+    result = make_premake_file(&cmd_data);
     if (result != OK) {
         return result;
     }

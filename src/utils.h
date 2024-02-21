@@ -12,5 +12,6 @@
 bool is_short(const char *flag);
 bool is_long(const char *flag);
 
+char *strupper(char *s);
 #endif
 
