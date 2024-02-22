@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include "commands/new.h"
+#include "commands/build.h"
 
 void usage(void) {
     printf("USAGE: bx {new,build,run,help} ...\n");
@@ -28,8 +29,7 @@ int main(int argc, const char **argv) {
     if (iter_match(&args, "new")) {
         cmd_new(&args);
     } else if (iter_match(&args, "build")) {
-        // TODO: Implement `build` command.
-        assert(false);
+        cmd_build(&args);
     } else if (iter_match(&args, "run")) {
         // TODO: Implement `run` command.
         assert(false);

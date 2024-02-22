@@ -5,6 +5,7 @@
 #include "utils.h"
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/_types/_mode_t.h>
 #include <sys/errno.h>
@@ -21,7 +22,7 @@ typedef enum Dialect {
     DIALECT_COUNT
 } Dialect;
 
-const char *dialect_names[] = {
+static const char *dialect_names[] = {
     "c99",
     "c11",
     "c17",
@@ -57,6 +58,7 @@ static void usage_new(void) {
 static ResultCode cmd_new_help(ArgIter *args, void *cmd_data) {
     UNUSED(args, cmd_data);
     usage_new();
+    exit(0);
     return OK;
 }
 
@@ -137,7 +139,7 @@ static ResultCode cmd_new_name(ArgIter *args, void *cmd_data) {
     return OK;
 }
 
-const CmdFlagInfo flags[] = {
+static const CmdFlagInfo flags[] = {
     (CmdFlagInfo){
         .short_name = "h",
         .long_name = "help",
@@ -170,7 +172,7 @@ const CmdFlagInfo flags[] = {
     }
 };
 
-const size_t flags_length = sizeof(flags) / sizeof(flags[0]);
+static const size_t flags_length = sizeof(flags) / sizeof(flags[0]);
 
 ResultCode process_options(ArgIter *args, CmdNewData *cmd_data) {
     while (args->length != 0) {
@@ -415,7 +417,7 @@ ResultCode make_build_scripts(CmdNewData *cmd_data) {
     fprintf(build_debug, "cp %s/compile_commands/debug.json compile_commands.json\n", build_dir);
     fprintf(build_debug, "\n");
     fprintf(build_debug, "# backend commands\n"); // TODO: Hardcoded backend.
-    fprintf(build_debug, "make config=debug\n");
+    fprintf(build_debug, "make config=debug -C %s\n", build_dir);
     fprintf(build_debug, "\n");
 
     int result = chmod(path, mode);
