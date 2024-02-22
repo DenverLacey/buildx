@@ -3,8 +3,7 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include "commands/new.h"
-#include "commands/build.h"
+#include "commands/cmd.h"
 
 void usage(void) {
     printf("USAGE: bx {new,build,run,help} ...\n");
@@ -31,8 +30,7 @@ int main(int argc, const char **argv) {
     } else if (iter_match(&args, "build")) {
         cmd_build(&args);
     } else if (iter_match(&args, "run")) {
-        // TODO: Implement `run` command.
-        assert(false);
+        cmd_run(&args);
     } else if (iter_match(&args, "help")) {
         usage();
     } else {

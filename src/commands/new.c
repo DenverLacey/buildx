@@ -1,5 +1,3 @@
-#include "new.h"
-#include "argiter.h"
 #include "cmd.h"
 #include "errors.h"
 #include "utils.h"
@@ -389,6 +387,7 @@ ResultCode make_premake_file(CmdNewData *cmd_data) {
 
 ResultCode make_build_scripts(CmdNewData *cmd_data) {
     const char *proj_dir = cmd_data->project_path ? cmd_data->project_path : ".";
+    const char *out_dir = cmd_data->output_dir ? cmd_data->output_dir : "bin";
     const char *build_dir = "build";
     const char *backend = "gmake2";
 
@@ -455,6 +454,68 @@ ResultCode make_build_scripts(CmdNewData *cmd_data) {
     if (result == -1) {
         const char *err = strerror(errno);
         logprint(FATAL, "Failed to give permissions to 'build_release.sh': %s", err);
+        return FAIL_SET_PERMS;
+    }
+
+    snprintf(path, sizeof(path), "%s/%s/run_debug.sh", proj_dir, build_dir);
+
+    FILE *run_debug = fopen(path, "wx");
+    if (!run_debug) {
+        if (errno == EEXIST) {
+            logprint(WARN, "'%s' already exists.", path);
+            return OK;
+        }
+        const char *err = strerror(errno);
+        logprint(ERROR, "Failed to create '%s': %s", path, err);
+        return FAIL_OPEN_FILE;
+    }
+
+    // TODO: Forwarding arguments to the executable
+    fprintf(run_debug, "#!/bin/bash\n");
+    fprintf(run_debug, "\n");
+    fprintf(run_debug, "if ! [ -f %s/debug/%s ]; then\n", out_dir, cmd_data->executable_name);
+    fprintf(run_debug, "    echo \"ERROR: No executable. use `bx build --debug` first.\"\n");
+    fprintf(run_debug, "    exit\n");
+    fprintf(run_debug, "fi\n");
+    fprintf(run_debug, "\n");
+    fprintf(run_debug, "%s/debug/%s\n", out_dir, cmd_data->executable_name);
+    fprintf(run_debug, "\n");
+
+    result = chmod(path, mode);
+    if (result == -1) {
+        const char *err = strerror(errno);
+        logprint(FATAL, "Failed to give permissions to 'run_debug.sh': %s", err);
+        return FAIL_SET_PERMS;
+    }
+
+    snprintf(path, sizeof(path), "%s/%s/run_release.sh", proj_dir, build_dir);
+
+    FILE *run_release = fopen(path, "wx");
+    if (!run_release) {
+        if (errno == EEXIST) {
+            logprint(WARN, "'%s' already exists.", path);
+            return OK;
+        }
+        const char *err = strerror(errno);
+        logprint(ERROR, "Failed to create '%s': %s", path, err);
+        return FAIL_OPEN_FILE;
+    }
+
+    // TODO: Forwarding arguments to the executable
+    fprintf(run_release, "#!/bin/bash\n");
+    fprintf(run_release, "\n");
+    fprintf(run_release, "if ! [ -f %s/release/%s ]; then\n", out_dir, cmd_data->executable_name);
+    fprintf(run_release, "    echo \"ERROR: No executable. use `bx build --release` first.\"\n");
+    fprintf(run_release, "    exit\n");
+    fprintf(run_release, "fi\n");
+    fprintf(run_release, "\n");
+    fprintf(run_release, "%s/release/%s\n", out_dir, cmd_data->executable_name);
+    fprintf(run_release, "\n");
+
+    result = chmod(path, mode);
+    if (result == -1) {
+        const char *err = strerror(errno);
+        logprint(FATAL, "Failed to give permissions to 'run_release.sh': %s", err);
         return FAIL_SET_PERMS;
     }
 

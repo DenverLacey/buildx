@@ -17,5 +17,10 @@ typedef struct CmdFlagInfo {
 	CmdFunc cmd;
 } CmdFlagInfo;
 
+// Commands
+ResultCode cmd_new(ArgIter *args);
+ResultCode cmd_build(ArgIter *args);
+ResultCode cmd_run(ArgIter *args);
+
 #endif
 
