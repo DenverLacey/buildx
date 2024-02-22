@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/_types/_mode_t.h>
 #include <sys/errno.h>
 #include <sys/stat.h>
 
@@ -228,6 +229,7 @@ ResultCode make_project_directories(CmdNewData *cmd_data) {
     const char *out_dir = cmd_data->output_dir ? cmd_data->output_dir : "bin";
     const char *src_dir = cmd_data->src_dir ? cmd_data->src_dir : "src";
 
+    // Output Directory
     snprintf(path, sizeof(path), "%s/%s", proj_dir, out_dir);
     status = mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     if (status == -1) {
@@ -256,6 +258,7 @@ ResultCode make_project_directories(CmdNewData *cmd_data) {
         return FAIL_CREATE_DIRECTORY;
     }
 
+    // Source Directory
     snprintf(path, sizeof(path), "%s/%s", proj_dir, src_dir);
     status = mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     if (status == -1) {
@@ -265,6 +268,15 @@ ResultCode make_project_directories(CmdNewData *cmd_data) {
         }
         const char *err = strerror(errno);
         logprint(ERROR, "Failed to create source directory: %s", err);
+        return FAIL_CREATE_DIRECTORY;
+    }
+
+    // Build Directory
+    snprintf(path, sizeof(path), "%s/build", proj_dir);
+    status = mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    if (status == -1) {
+        const char *err = strerror(errno);
+        logprint(ERROR, "Failed to create build scripts directory: %s", err);
         return FAIL_CREATE_DIRECTORY;
     }
 
@@ -303,6 +315,7 @@ ResultCode make_main_file(CmdNewData *cmd_data) {
 
 ResultCode make_premake_file(CmdNewData *cmd_data) {
     const char *proj_dir = cmd_data->project_path ? cmd_data->project_path : ".";
+    const char *build_dir = "build";
     const char *out_dir = cmd_data->output_dir ? cmd_data->output_dir : "bin";
     const char *src_dir = cmd_data->src_dir ? cmd_data->src_dir : "src";
 
@@ -315,7 +328,7 @@ ResultCode make_premake_file(CmdNewData *cmd_data) {
     strupper(dialect);
 
     char path[1024];
-    snprintf(path, sizeof(path), "%s/premake5.lua", proj_dir);
+    snprintf(path, sizeof(path), "%s/%s/premake5.lua", proj_dir, build_dir);
 
     FILE *f = fopen(path, "wx");
     if (!f) {
@@ -368,6 +381,80 @@ ResultCode make_premake_file(CmdNewData *cmd_data) {
     fprintf(f, "        defines { 'NDEBUG' }\n");
     fprintf(f, "        targetdir '%s/release'\n", out_dir);
     fprintf(f, "        optimize 'Full'\n");
+    fprintf(f, "\n");
+
+    return OK;
+}
+
+ResultCode make_build_scripts(CmdNewData *cmd_data) {
+    const char *proj_dir = cmd_data->project_path ? cmd_data->project_path : ".";
+    const char *build_dir = "build";
+    const char *backend = "gmake2";
+
+    mode_t mode = S_IRUSR | S_IWUSR | S_IXUSR;
+
+    char path[1024];
+    snprintf(path, sizeof(path), "%s/%s/build_debug.sh", proj_dir, build_dir);
+
+    FILE *build_debug = fopen(path, "wx");
+    if (!build_debug) {
+        if (errno == EEXIST) {
+            logprint(WARN, "'%s' already exists.", path);
+            return OK;
+        }
+        const char *err = strerror(errno);
+        logprint(ERROR, "Failed to create '%s': %s", path, err);
+        return FAIL_OPEN_FILE;
+    }
+
+    fprintf(build_debug, "#!/bin/bash\n");
+    fprintf(build_debug, "\n");
+    fprintf(build_debug, "# premake commands\n");
+    fprintf(build_debug, "premake5 --file=%s/premake5.lua %s\n", build_dir, backend);
+    fprintf(build_debug, "premake5 --file=%s/premake5.lua export-compile-commands\n", build_dir);
+    fprintf(build_debug, "cp %s/compile_commands/debug.json compile_commands.json\n", build_dir);
+    fprintf(build_debug, "\n");
+    fprintf(build_debug, "# backend commands\n"); // TODO: Hardcoded backend.
+    fprintf(build_debug, "make config=debug\n");
+    fprintf(build_debug, "\n");
+
+    int result = chmod(path, mode);
+    if (result == -1) {
+        const char *err = strerror(errno);
+        logprint(FATAL, "Failed to give permissions to 'build_debug.sh': %s", err);
+        return FAIL_SET_PERMS;
+    }
+
+    snprintf(path, sizeof(path), "%s/%s/build_release.sh", proj_dir, build_dir);
+
+    FILE *build_release = fopen(path, "wx");
+    if (!build_release) {
+        if (errno == EEXIST) {
+            logprint(WARN, "'%s' already exists.", path);
+            return OK;
+        }
+        const char *err = strerror(errno);
+        logprint(ERROR, "Failed to create '%s': %s", path, err);
+        return FAIL_OPEN_FILE;
+    }
+
+    fprintf(build_release, "#!/bin/bash\n");
+    fprintf(build_release, "\n");
+    fprintf(build_release, "# premake commands\n");
+    fprintf(build_release, "premake5 --file=%s/premake5.lua %s\n", build_dir, backend);
+    fprintf(build_release, "premake5 --file=%s/premake5.lua export-compile-commands\n", build_dir);
+    fprintf(build_release, "cp %s/compile_commands/debug.json compile_commands.json\n", build_dir);
+    fprintf(build_release, "\n");
+    fprintf(build_release, "# backend commands\n"); // TODO: Hardcoded backend.
+    fprintf(build_release, "make config=release\n");
+    fprintf(build_release, "\n");
+
+    result = chmod(path, mode);
+    if (result == -1) {
+        const char *err = strerror(errno);
+        logprint(FATAL, "Failed to give permissions to 'build_release.sh': %s", err);
+        return FAIL_SET_PERMS;
+    }
 
     return OK;
 }
@@ -396,6 +483,11 @@ ResultCode cmd_new(ArgIter *args) {
         return result;
     }
 
+    result = make_build_scripts(&cmd_data);
+    if (result != OK) {
+        return result;
+    }
+
     return OK;
 }
 
@@ -404,5 +496,9 @@ ResultCode cmd_new(ArgIter *args) {
 *  Is this an edge case we want to support?
 *  I could see wanting to run `new` command more than once in order to update
 *  things, but perhaps that should be its own command.
+*/
+
+/* TODO:
+*  Use the new command to set the backend: make, vsproj, xcode, etc.
 */
 

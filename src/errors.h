@@ -7,7 +7,8 @@ typedef enum ResultCode {
 	NO_ARG_VALUE,
 	BAD_ARG_VALUE,
 	FAIL_CREATE_DIRECTORY,
-	FAIL_OPEN_FILE
+	FAIL_OPEN_FILE,
+	FAIL_SET_PERMS
 } ResultCode;
 
 #endif
