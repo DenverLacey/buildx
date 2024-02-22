@@ -64,7 +64,7 @@ static ResultCode cmd_new_output_dir(ArgIter *args, void *cmd_data) {
 
     const char *path = iter_next(args);
     if (!path) {
-        printf("ERROR: Expected a path after `-o/--output_dir` flag.\n");
+        logprint(ERROR, "Expected a path after `-o/--output_dir` flag.");
         return NO_ARG_VALUE;
     }
 
@@ -78,7 +78,7 @@ static ResultCode cmd_new_src_dir(ArgIter *args, void *cmd_data) {
 
     const char *path = iter_next(args);
     if (!path) {
-        printf("ERROR: Expected a path after `-s/--src_dir` flag.\n");
+        logprint(ERROR, "Expected a path after `-s/--src_dir` flag.");
         return NO_ARG_VALUE;
     }
 
@@ -92,7 +92,7 @@ static ResultCode cmd_new_dialect(ArgIter *args, void *cmd_data) {
 
     const char *dialect = iter_next(args);
     if (!dialect) {
-        printf("ERROR: Expected a dialect after `-d/--dialect` flag.\n");
+        logprint(ERROR, "Expected a dialect after `-d/--dialect` flag.");
         return NO_ARG_VALUE;
     }
 
@@ -106,7 +106,7 @@ static ResultCode cmd_new_dialect(ArgIter *args, void *cmd_data) {
     }
 
     if (not_found) {
-        printf("ERROR: '%s' is not a valid dialect variant.\n", dialect);
+        logprint(ERROR, "'%s' is not a valid dialect variant.", dialect);
         return BAD_ARG_VALUE;
     }
 
@@ -127,7 +127,7 @@ static ResultCode cmd_new_name(ArgIter *args, void *cmd_data) {
 
     const char *name = iter_next(args);
     if (!name) {
-        printf("ERROR: Expected an identifier after `-n/--name` flag.\n");
+        logprint(ERROR, "Expected an identifier after `-n/--name` flag.");
         return NO_ARG_VALUE;
     }
 
@@ -215,9 +215,9 @@ ResultCode process_options(ArgIter *args, CmdNewData *cmd_data) {
 ResultCode make_project_directories(CmdNewData *cmd_data) {
     if (cmd_data->project_path) {
         int status = mkdir(cmd_data->project_path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-        if (status == -1 && errno != EEXIST) {
+        if (status == -1) {
             const char *err = strerror(errno);
-            printf("ERROR: Failed to create project directory: %s.\n", err);
+            logprint(ERROR, "Failed to create project directory: %s.", err);
             return FAIL_CREATE_DIRECTORY;
         }
     }
@@ -230,33 +230,41 @@ ResultCode make_project_directories(CmdNewData *cmd_data) {
 
     snprintf(path, sizeof(path), "%s/%s", proj_dir, out_dir);
     status = mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    if (status == -1 && errno != EEXIST) {
+    if (status == -1) {
         const char *err = strerror(errno);
-        printf("ERROR: Failed to create output directory: %s\n", err);
+        logprint(ERROR, "Failed to create output directory: %s", err);
         return FAIL_CREATE_DIRECTORY;
     }
 
     snprintf(path, sizeof(path), "%s/%s/debug", proj_dir, out_dir);
     status = mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    if (status == -1 && errno != EEXIST) {
+    if (status == -1) {
+        if (status == EEXIST) {
+            logprint(WARN, "'%s' already exists.", cmd_data->project_path);
+            return OK;
+        }
         const char *err = strerror(errno);
-        printf("ERROR: Failed to create debug output directory: %s\n", err);
+        logprint(ERROR, "Failed to create debug output directory: %s", err);
         return FAIL_CREATE_DIRECTORY;
     }
 
     snprintf(path, sizeof(path), "%s/%s/release", proj_dir, out_dir);
     status = mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    if (status == -1 && errno != EEXIST) {
+    if (status == -1) {
         const char *err = strerror(errno);
-        printf("ERROR: Failed to create release output directory: %s\n", err);
+        logprint(ERROR, "Failed to create release output directory: %s", err);
         return FAIL_CREATE_DIRECTORY;
     }
 
     snprintf(path, sizeof(path), "%s/%s", proj_dir, src_dir);
     status = mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    if (status == -1 && errno != EEXIST) {
+    if (status == -1) {
+        if (status == EEXIST) {
+            logprint(WARN, "'%s' already exists.", cmd_data->project_path);
+            return OK;
+        }
         const char *err = strerror(errno);
-        printf("ERROR: Failed to create source directory: %s\n", err);
+        logprint(ERROR, "Failed to create source directory: %s", err);
         return FAIL_CREATE_DIRECTORY;
     }
 
@@ -271,11 +279,14 @@ ResultCode make_main_file(CmdNewData *cmd_data) {
     char path[1024];
     snprintf(path, sizeof(path), "%s/%s/main.%s", proj_dir, src_dir, ext);
 
-    FILE *f = fopen(path, "w+");
+    FILE *f = fopen(path, "wx");
     if (!f) {
-        if (errno == EEXIST) return OK;
+        if (errno == EEXIST) {
+            logprint(WARN, "'%s' already exists.", path);
+            return OK;
+        }
         const char *err = strerror(errno);
-        printf("ERROR: Failed to create '%s': %s\n", path, err);
+        logprint(ERROR, "Failed to create '%s': %s", path, err);
         return FAIL_OPEN_FILE;
     }
 
@@ -306,11 +317,14 @@ ResultCode make_premake_file(CmdNewData *cmd_data) {
     char path[1024];
     snprintf(path, sizeof(path), "%s/premake5.lua", proj_dir);
 
-    FILE *f = fopen(path, "w+");
+    FILE *f = fopen(path, "wx");
     if (!f) {
-        if (errno == EEXIST) return OK;
+        if (errno == EEXIST) {
+            logprint(WARN, "'%s' already exists.", path);
+            return OK;
+        }
         const char *err = strerror(errno);
-        printf("ERROR: Failed to create '%s': %s\n", path, err);
+        logprint(ERROR, "Failed to create '%s': %s", path, err);
         return FAIL_OPEN_FILE;
     }
 
@@ -384,4 +398,11 @@ ResultCode cmd_new(ArgIter *args) {
 
     return OK;
 }
+
+/* TODO:
+*  What should be done in the case where the project directory already exists?
+*  Is this an edge case we want to support?
+*  I could see wanting to run `new` command more than once in order to update
+*  things, but perhaps that should be its own command.
+*/
 

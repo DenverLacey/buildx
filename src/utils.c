@@ -1,5 +1,7 @@
 #include "utils.h"
+#include <stdio.h>
 #include <ctype.h>
+#include <stdarg.h>
 
 bool is_short(const char *flag) {
     if (!flag) return false;
@@ -20,5 +22,41 @@ char *strupper(char *s) {
         *c = toupper(*c);
     }
     return s;
+}
+
+#define COLOR_RESET "\033[m"
+#define COLOR_DBG   "\033[32m"
+#define COLOR_INFO  "\033[36m"
+#define COLOR_WARN  "\033[33m"
+#define COLOR_ERROR "\033[31m"
+#define COLOR_FATAL "\033[31m"
+
+const char *log_level_colors[] = {
+    COLOR_RESET,
+    COLOR_DBG,
+    COLOR_INFO,
+    COLOR_WARN,
+    COLOR_ERROR,
+    COLOR_FATAL
+};
+
+const char *log_level_labels[] = {
+    "",
+    "DBG",
+    "INFO",
+    "WARN",
+    "ERROR",
+    "FATAL"
+};
+
+void logprint(LogLevel lv, const char *__restrict fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+        if (lv != NONE) {
+            printf("%s%s" COLOR_RESET ": ", log_level_colors[lv], log_level_labels[lv]);
+        }
+        vprintf(fmt, args);
+        printf("\n");
+    va_end(args);
 }
 

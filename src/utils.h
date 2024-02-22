@@ -13,5 +13,17 @@ bool is_short(const char *flag);
 bool is_long(const char *flag);
 
 char *strupper(char *s);
+
+typedef enum LogLevel {
+	NONE,
+	DBG,
+	INFO,
+	WARN,
+	ERROR,
+	FATAL
+} LogLevel;
+
+void logprint(LogLevel lv, const char *__restrict fmt, ...);
+
 #endif
 

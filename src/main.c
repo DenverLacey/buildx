@@ -37,7 +37,7 @@ int main(int argc, const char **argv) {
         usage();
     } else {
         const char *unknown = iter_next(&args);
-        printf("ERROR: '%s' is not a valid command.\n", unknown);
+        logprint(ERROR, "'%s' is not a valid command.", unknown);
         usage();
     }
 

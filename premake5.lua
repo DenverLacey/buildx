@@ -31,3 +31,4 @@ project "bx"
     filter "configurations:release"
         targetdir "bin/release"
         optimize "Full"
+
