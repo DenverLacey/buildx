@@ -317,7 +317,6 @@ ResultCode make_main_file(CmdNewData *cmd_data) {
 
 ResultCode make_premake_file(CmdNewData *cmd_data) {
     const char *proj_dir = cmd_data->project_path ? cmd_data->project_path : ".";
-    const char *build_dir = "build";
     const char *out_dir = cmd_data->output_dir ? cmd_data->output_dir : "bin";
     const char *src_dir = cmd_data->src_dir ? cmd_data->src_dir : "src";
 
@@ -330,7 +329,7 @@ ResultCode make_premake_file(CmdNewData *cmd_data) {
     strupper(dialect);
 
     char path[1024];
-    snprintf(path, sizeof(path), "%s/%s/premake5.lua", proj_dir, build_dir);
+    snprintf(path, sizeof(path), "%s/premake5.lua", proj_dir);
 
     FILE *f = fopen(path, "wx");
     if (!f) {
@@ -412,12 +411,13 @@ ResultCode make_build_scripts(CmdNewData *cmd_data) {
     fprintf(build_debug, "#!/bin/bash\n");
     fprintf(build_debug, "\n");
     fprintf(build_debug, "# premake commands\n");
-    fprintf(build_debug, "premake5 --file=%s/premake5.lua %s\n", build_dir, backend);
-    fprintf(build_debug, "premake5 --file=%s/premake5.lua export-compile-commands\n", build_dir);
-    fprintf(build_debug, "cp %s/compile_commands/debug.json compile_commands.json\n", build_dir);
+    fprintf(build_debug, "premake5 %s\n", backend);
+    fprintf(build_debug, "premake5 export-compile-commands\n");
+    fprintf(build_debug, "cp compile_commands/debug.json compile_commands.json\n");
+    fprintf(build_debug, "mv compile_commands %s/compile_commands\n", build_dir);
     fprintf(build_debug, "\n");
     fprintf(build_debug, "# backend commands\n"); // TODO: Hardcoded backend.
-    fprintf(build_debug, "make config=debug -C %s\n", build_dir);
+    fprintf(build_debug, "make config=debug\n");
     fprintf(build_debug, "\n");
 
     int result = chmod(path, mode);

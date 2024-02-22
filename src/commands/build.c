@@ -17,12 +17,11 @@ typedef struct CmdBuildData {
 } CmdBuildData;
 
 static void usage_build(void) {
-    printf("USAGE: bx build [-h] [debug|release|d|r]\n");
-    printf("Positional Arguments:\n");
-    printf("    d, debug:     Build debug executable.\n");
-    printf("    r, release:   Build release executable.\n");
+    printf("USAGE: bx build [-h] [-d|-r]\n");
     printf("Options:\n");
-    printf("    -h, --help:       Show this help message.\n");
+    printf("    -d, --debug:     Build debug executable.\n");
+    printf("    -r, --release:   Build release executable.\n");
+    printf("    -h, --help:      Show this help message.\n");
 }
 
 static ResultCode cmd_build_help(ArgIter *args, void *cmd_data) {
