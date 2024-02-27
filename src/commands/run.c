@@ -103,13 +103,13 @@ ResultCode cmd_run(ArgIter *args) {
     switch (cmd_data.mode) {
         case RM_DEBUG:
             if (system("build/run_debug.sh") == -1) {
-                logprint(FATAL, "Failed to execute run script 'build/run_debug.sh'.");
+                logprint(LOG_FATAL, "Failed to execute run script 'build/run_debug.sh'.");
                 return INTERNAL_ERROR;
             }
             break;
         case RM_RELEASE:
             if (system("build/run_release.sh") == -1) {
-                logprint(FATAL, "Failed to execute run script 'build/run_release.sh'.");
+                logprint(LOG_FATAL, "Failed to execute run script 'build/run_release.sh'.");
                 return INTERNAL_ERROR;
             }
             break;

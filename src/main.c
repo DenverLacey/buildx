@@ -1,6 +1,5 @@
 #include "argiter.h"
 #include "utils.h"
-#include <assert.h>
 #include <stdio.h>
 
 #include "commands/cmd.h"
@@ -35,7 +34,7 @@ int main(int argc, const char **argv) {
         usage();
     } else {
         const char *unknown = iter_next(&args);
-        logprint(ERROR, "'%s' is not a valid command.", unknown);
+        logprint(LOG_ERROR, "'%s' is not a valid command.", unknown);
         usage();
     }
 

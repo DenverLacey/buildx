@@ -52,7 +52,7 @@ const char *log_level_labels[] = {
 void logprint(LogLevel lv, const char *__restrict fmt, ...) {
     va_list args;
     va_start(args, fmt);
-        if (lv != NONE) {
+        if (lv != LOG_NONE) {
             printf("%s%s" COLOR_RESET ": ", log_level_colors[lv], log_level_labels[lv]);
         }
         vprintf(fmt, args);

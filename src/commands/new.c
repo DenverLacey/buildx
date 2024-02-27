@@ -65,7 +65,7 @@ static ResultCode cmd_new_output_dir(ArgIter *args, void *cmd_data) {
 
     const char *path = iter_next(args);
     if (!path) {
-        logprint(ERROR, "Expected a path after `-o/--output_dir` flag.");
+        logprint(LOG_ERROR, "Expected a path after `-o/--output_dir` flag.");
         return NO_ARG_VALUE;
     }
 
@@ -79,7 +79,7 @@ static ResultCode cmd_new_src_dir(ArgIter *args, void *cmd_data) {
 
     const char *path = iter_next(args);
     if (!path) {
-        logprint(ERROR, "Expected a path after `-s/--src_dir` flag.");
+        logprint(LOG_ERROR, "Expected a path after `-s/--src_dir` flag.");
         return NO_ARG_VALUE;
     }
 
@@ -93,7 +93,7 @@ static ResultCode cmd_new_dialect(ArgIter *args, void *cmd_data) {
 
     const char *dialect = iter_next(args);
     if (!dialect) {
-        logprint(ERROR, "Expected a dialect after `-d/--dialect` flag.");
+        logprint(LOG_ERROR, "Expected a dialect after `-d/--dialect` flag.");
         return NO_ARG_VALUE;
     }
 
@@ -107,7 +107,7 @@ static ResultCode cmd_new_dialect(ArgIter *args, void *cmd_data) {
     }
 
     if (not_found) {
-        logprint(ERROR, "'%s' is not a valid dialect variant.", dialect);
+        logprint(LOG_ERROR, "'%s' is not a valid dialect variant.", dialect);
         return BAD_ARG_VALUE;
     }
 
@@ -128,7 +128,7 @@ static ResultCode cmd_new_name(ArgIter *args, void *cmd_data) {
 
     const char *name = iter_next(args);
     if (!name) {
-        logprint(ERROR, "Expected an identifier after `-n/--name` flag.");
+        logprint(LOG_ERROR, "Expected an identifier after `-n/--name` flag.");
         return NO_ARG_VALUE;
     }
 
@@ -218,7 +218,7 @@ ResultCode make_project_directories(CmdNewData *cmd_data) {
         int status = mkdir(cmd_data->project_path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
         if (status == -1) {
             const char *err = strerror(errno);
-            logprint(ERROR, "Failed to create project directory: %s.", err);
+            logprint(LOG_ERROR, "Failed to create project directory: %s.", err);
             return FAIL_CREATE_DIRECTORY;
         }
     }
@@ -234,7 +234,7 @@ ResultCode make_project_directories(CmdNewData *cmd_data) {
     status = mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     if (status == -1) {
         const char *err = strerror(errno);
-        logprint(ERROR, "Failed to create output directory: %s", err);
+        logprint(LOG_ERROR, "Failed to create output directory: %s", err);
         return FAIL_CREATE_DIRECTORY;
     }
 
@@ -242,11 +242,11 @@ ResultCode make_project_directories(CmdNewData *cmd_data) {
     status = mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     if (status == -1) {
         if (status == EEXIST) {
-            logprint(WARN, "'%s' already exists.", cmd_data->project_path);
+            logprint(LOG_WARN, "'%s' already exists.", cmd_data->project_path);
             return OK;
         }
         const char *err = strerror(errno);
-        logprint(ERROR, "Failed to create debug output directory: %s", err);
+        logprint(LOG_ERROR, "Failed to create debug output directory: %s", err);
         return FAIL_CREATE_DIRECTORY;
     }
 
@@ -254,7 +254,7 @@ ResultCode make_project_directories(CmdNewData *cmd_data) {
     status = mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     if (status == -1) {
         const char *err = strerror(errno);
-        logprint(ERROR, "Failed to create release output directory: %s", err);
+        logprint(LOG_ERROR, "Failed to create release output directory: %s", err);
         return FAIL_CREATE_DIRECTORY;
     }
 
@@ -263,11 +263,11 @@ ResultCode make_project_directories(CmdNewData *cmd_data) {
     status = mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     if (status == -1) {
         if (status == EEXIST) {
-            logprint(WARN, "'%s' already exists.", cmd_data->project_path);
+            logprint(LOG_WARN, "'%s' already exists.", cmd_data->project_path);
             return OK;
         }
         const char *err = strerror(errno);
-        logprint(ERROR, "Failed to create source directory: %s", err);
+        logprint(LOG_ERROR, "Failed to create source directory: %s", err);
         return FAIL_CREATE_DIRECTORY;
     }
 
@@ -276,7 +276,7 @@ ResultCode make_project_directories(CmdNewData *cmd_data) {
     status = mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     if (status == -1) {
         const char *err = strerror(errno);
-        logprint(ERROR, "Failed to create build scripts directory: %s", err);
+        logprint(LOG_ERROR, "Failed to create build scripts directory: %s", err);
         return FAIL_CREATE_DIRECTORY;
     }
 
@@ -294,11 +294,11 @@ ResultCode make_main_file(CmdNewData *cmd_data) {
     FILE *f = fopen(path, "wx");
     if (!f) {
         if (errno == EEXIST) {
-            logprint(WARN, "'%s' already exists.", path);
+            logprint(LOG_WARN, "'%s' already exists.", path);
             return OK;
         }
         const char *err = strerror(errno);
-        logprint(ERROR, "Failed to create '%s': %s", path, err);
+        logprint(LOG_ERROR, "Failed to create '%s': %s", path, err);
         return FAIL_OPEN_FILE;
     }
 
@@ -332,11 +332,11 @@ ResultCode make_premake_file(CmdNewData *cmd_data) {
     FILE *f = fopen(path, "wx");
     if (!f) {
         if (errno == EEXIST) {
-            logprint(WARN, "'%s' already exists.", path);
+            logprint(LOG_WARN, "'%s' already exists.", path);
             return OK;
         }
         const char *err = strerror(errno);
-        logprint(ERROR, "Failed to create '%s': %s", path, err);
+        logprint(LOG_ERROR, "Failed to create '%s': %s", path, err);
         return FAIL_OPEN_FILE;
     }
 
@@ -399,11 +399,11 @@ ResultCode make_build_scripts(CmdNewData *cmd_data) {
     FILE *build_debug = fopen(path, "wx");
     if (!build_debug) {
         if (errno == EEXIST) {
-            logprint(WARN, "'%s' already exists.", path);
+            logprint(LOG_WARN, "'%s' already exists.", path);
             return OK;
         }
         const char *err = strerror(errno);
-        logprint(ERROR, "Failed to create '%s': %s", path, err);
+        logprint(LOG_ERROR, "Failed to create '%s': %s", path, err);
         return FAIL_OPEN_FILE;
     }
 
@@ -422,7 +422,7 @@ ResultCode make_build_scripts(CmdNewData *cmd_data) {
     int result = chmod(path, mode);
     if (result == -1) {
         const char *err = strerror(errno);
-        logprint(FATAL, "Failed to give permissions to 'build_debug.sh': %s", err);
+        logprint(LOG_FATAL, "Failed to give permissions to 'build_debug.sh': %s", err);
         return FAIL_SET_PERMS;
     }
 
@@ -431,11 +431,11 @@ ResultCode make_build_scripts(CmdNewData *cmd_data) {
     FILE *build_release = fopen(path, "wx");
     if (!build_release) {
         if (errno == EEXIST) {
-            logprint(WARN, "'%s' already exists.", path);
+            logprint(LOG_WARN, "'%s' already exists.", path);
             return OK;
         }
         const char *err = strerror(errno);
-        logprint(ERROR, "Failed to create '%s': %s", path, err);
+        logprint(LOG_ERROR, "Failed to create '%s': %s", path, err);
         return FAIL_OPEN_FILE;
     }
 
@@ -453,7 +453,7 @@ ResultCode make_build_scripts(CmdNewData *cmd_data) {
     result = chmod(path, mode);
     if (result == -1) {
         const char *err = strerror(errno);
-        logprint(FATAL, "Failed to give permissions to 'build_release.sh': %s", err);
+        logprint(LOG_FATAL, "Failed to give permissions to 'build_release.sh': %s", err);
         return FAIL_SET_PERMS;
     }
 
@@ -462,11 +462,11 @@ ResultCode make_build_scripts(CmdNewData *cmd_data) {
     FILE *run_debug = fopen(path, "wx");
     if (!run_debug) {
         if (errno == EEXIST) {
-            logprint(WARN, "'%s' already exists.", path);
+            logprint(LOG_WARN, "'%s' already exists.", path);
             return OK;
         }
         const char *err = strerror(errno);
-        logprint(ERROR, "Failed to create '%s': %s", path, err);
+        logprint(LOG_ERROR, "Failed to create '%s': %s", path, err);
         return FAIL_OPEN_FILE;
     }
 
@@ -484,7 +484,7 @@ ResultCode make_build_scripts(CmdNewData *cmd_data) {
     result = chmod(path, mode);
     if (result == -1) {
         const char *err = strerror(errno);
-        logprint(FATAL, "Failed to give permissions to 'run_debug.sh': %s", err);
+        logprint(LOG_FATAL, "Failed to give permissions to 'run_debug.sh': %s", err);
         return FAIL_SET_PERMS;
     }
 
@@ -493,11 +493,11 @@ ResultCode make_build_scripts(CmdNewData *cmd_data) {
     FILE *run_release = fopen(path, "wx");
     if (!run_release) {
         if (errno == EEXIST) {
-            logprint(WARN, "'%s' already exists.", path);
+            logprint(LOG_WARN, "'%s' already exists.", path);
             return OK;
         }
         const char *err = strerror(errno);
-        logprint(ERROR, "Failed to create '%s': %s", path, err);
+        logprint(LOG_ERROR, "Failed to create '%s': %s", path, err);
         return FAIL_OPEN_FILE;
     }
 
@@ -515,7 +515,7 @@ ResultCode make_build_scripts(CmdNewData *cmd_data) {
     result = chmod(path, mode);
     if (result == -1) {
         const char *err = strerror(errno);
-        logprint(FATAL, "Failed to give permissions to 'run_release.sh': %s", err);
+        logprint(LOG_FATAL, "Failed to give permissions to 'run_release.sh': %s", err);
         return FAIL_SET_PERMS;
     }
 

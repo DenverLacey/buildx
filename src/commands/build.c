@@ -104,13 +104,13 @@ ResultCode cmd_build(ArgIter *args) {
     switch (cmd_data.mode) {
         case BM_DEBUG:
             if (system("build/build_debug.sh") == -1) {
-                logprint(FATAL, "Failed to run build script 'build/build_debug.sh'.");
+                logprint(LOG_FATAL, "Failed to run build script 'build/build_debug.sh'.");
                 return INTERNAL_ERROR;
             }
             break;
         case BM_RELEASE:
             if (system("build/build_release.sh") == -1) {
-                logprint(FATAL, "Failed to run build script 'build/build_release.sh'.");
+                logprint(LOG_FATAL, "Failed to run build script 'build/build_release.sh'.");
                 return INTERNAL_ERROR;
             }
             break;
