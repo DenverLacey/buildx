@@ -35,6 +35,7 @@ bool iter_match(ArgIter *iter, const char *arg) {
     if (strcmp(iter->args[0], arg) != 0) {
         return false;
     }
+
     iter_next(iter);
     return true;
 }

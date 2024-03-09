@@ -27,7 +27,7 @@ project "bx"
         targetdir "bin/debug"
         symbols "On"
         optimize "Debug"
-    
+
     filter "configurations:release"
         targetdir "bin/release"
         optimize "Full"

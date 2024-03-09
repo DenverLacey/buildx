@@ -25,7 +25,7 @@ char *strupper(char *s) {
 }
 
 #define COLOR_RESET "\033[m"
-#define COLOR_DBG   "\033[32m"
+#define COLOR_DEBUG   "\033[32m"
 #define COLOR_INFO  "\033[36m"
 #define COLOR_WARN  "\033[33m"
 #define COLOR_ERROR "\033[31m"
@@ -33,7 +33,7 @@ char *strupper(char *s) {
 
 const char *log_level_colors[] = {
     COLOR_RESET,
-    COLOR_DBG,
+    COLOR_DEBUG,
     COLOR_INFO,
     COLOR_WARN,
     COLOR_ERROR,
@@ -42,7 +42,7 @@ const char *log_level_colors[] = {
 
 const char *log_level_labels[] = {
     "",
-    "DBG",
+    "DEBUG",
     "INFO",
     "WARN",
     "ERROR",

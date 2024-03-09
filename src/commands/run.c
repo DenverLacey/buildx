@@ -1,5 +1,4 @@
 #include "cmd.h"
-#include "errors.h"
 #include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,29 +20,29 @@ static void usage_run(void) {
     printf("    -h, --help:      Show this help message.\n");
 }
 
-static ResultCode cmd_run_help(ArgIter *args, void *cmd_data) {
+static bool cmd_run_help(ArgIter *args, void *cmd_data) {
     UNUSED(args, cmd_data);
     usage_run();
     exit(0);
-    return OK;
+    return true;
 }
 
-static ResultCode cmd_run_debug(ArgIter *args, void *cmd_data) {
+static bool cmd_run_debug(ArgIter *args, void *cmd_data) {
     UNUSED(args);
 
     CmdRunData *build_data = (CmdRunData *)cmd_data;
     build_data->mode = RM_DEBUG;
 
-    return OK;
+    return true;
 }
 
-static ResultCode cmd_run_release(ArgIter *args, void *cmd_data) {
+static bool cmd_run_release(ArgIter *args, void *cmd_data) {
     UNUSED(args);
 
     CmdRunData *build_data = (CmdRunData *)cmd_data;
     build_data->mode = RM_RELEASE;
 
-    return OK;
+    return true;
 }
 
 static const CmdFlagInfo flags[] = {
@@ -66,7 +65,7 @@ static const CmdFlagInfo flags[] = {
 
 static const size_t flags_length = sizeof(flags) / sizeof(flags[0]);
 
-static ResultCode process_options(ArgIter *args, CmdRunData *cmd_data) {
+static bool process_options(ArgIter *args, CmdRunData *cmd_data) {
     while (args->length != 0) {
         bool flag_found = false;
 
@@ -75,10 +74,10 @@ static ResultCode process_options(ArgIter *args, CmdRunData *cmd_data) {
             if (iter_check_flags(args, flag->names)) {
                 iter_next(args);
                 flag_found = true;
-                ResultCode result = flag->cmd(args, cmd_data);
-                if (result != OK) {
+                bool ok = flag->cmd(args, cmd_data);
+                if (!ok) {
                     usage_run();
-                    return result;
+                    return false;
                 }
             }
         }
@@ -88,33 +87,33 @@ static ResultCode process_options(ArgIter *args, CmdRunData *cmd_data) {
         }
     }
 
-    return OK;
+    return true;
 }
 
-ResultCode cmd_run(ArgIter *args) {
-    ResultCode result;
+bool cmd_run(ArgIter *args) {
+    bool ok;
     CmdRunData cmd_data = {0};
 
-    result = process_options(args, &cmd_data);
-    if (result != OK) {
-        return result;
+    ok = process_options(args, &cmd_data);
+    if (!ok) {
+        return false;
     }
 
     switch (cmd_data.mode) {
         case RM_DEBUG:
-            if (system("build/run_debug.sh") == -1) {
+            if (system(BUILDX_DIR "/run_debug.sh") == -1) {
                 logprint(LOG_FATAL, "Failed to execute run script 'build/run_debug.sh'.");
-                return INTERNAL_ERROR;
+                return false;
             }
             break;
         case RM_RELEASE:
-            if (system("build/run_release.sh") == -1) {
+            if (system(BUILDX_DIR "/run_release.sh") == -1) {
                 logprint(LOG_FATAL, "Failed to execute run script 'build/run_release.sh'.");
-                return INTERNAL_ERROR;
+                return false;
             }
             break;
     }
 
-    return OK;
+    return true;
 }
 

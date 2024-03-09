@@ -1,8 +1,7 @@
 #include "argiter.h"
+#include "commands/cmd.h"
 #include "utils.h"
 #include <stdio.h>
-
-#include "commands/cmd.h"
 
 void usage(void) {
     printf("USAGE: bx {new,build,run,help} ...\n");
@@ -17,7 +16,14 @@ void usage(void) {
 
 int main(int argc, const char **argv) {
     ArgIter args = iter_create(argc, argv);
-    UNUSED(iter_next(&args)); // Skip bin directory
+
+    const char *bx_path = iter_next(&args);
+    if (!bx_path) {
+        logprint(LOG_FATAL, "No bx path passed.");
+        return 0;
+    }
+
+    logprint(LOG_DEBUG, "bx path = '%s'", bx_path);
 
     if (args.length == 0) {
         usage();
@@ -25,7 +31,7 @@ int main(int argc, const char **argv) {
     }
 
     if (iter_match(&args, "new")) {
-        cmd_new(&args);
+        cmd_new(&args, bx_path);
     } else if (iter_match(&args, "build")) {
         cmd_build(&args);
     } else if (iter_match(&args, "run")) {
