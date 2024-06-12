@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 void usage(void) {
-    printf("USAGE: bx {new,build,run,help} ...\n");
+    printf("Usage: bx {new,build,run,help} ...\n");
     printf("    new:   Initialize a new project.\n");
     printf("           Use `bx new --help` for more info.\n");
     printf("    build: Build project.\n");
@@ -22,8 +22,6 @@ int main(int argc, const char **argv) {
         logprint(LOG_FATAL, "No bx path passed.");
         return 0;
     }
-
-    logprint(LOG_DEBUG, "bx path = '%s'", bx_path);
 
     if (args.length == 0) {
         usage();

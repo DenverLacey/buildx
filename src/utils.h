@@ -4,7 +4,7 @@
 #include <stdbool.h>
 
 #define MAJOR_VERSION (0)
-#define MINOR_VERSION (2)
+#define MINOR_VERSION (3)
 #define PATCH_VERSION (0)
 
 #define BUILDX_DIR ".buildx"
@@ -15,10 +15,16 @@
     ((void)(__VA_ARGS__))                                                      \
     _Pragma("clang diagnostic pop")
 
+#define RETURN(...) do {                                                       \
+	result = __VA_ARGS__;                                                      \
+	goto CLEAN_UP_AND_RETURN;                                                  \
+} while (0)
+
 bool is_short(const char *flag);
 bool is_long(const char *flag);
 
 char *strupper(char *s);
+bool starts_with(const char *s, const char *prefix);
 
 typedef enum LogLevel {
     LOG_NONE,
@@ -30,6 +36,27 @@ typedef enum LogLevel {
 } LogLevel;
 
 void logprint(LogLevel lv, const char *__restrict fmt, ...);
+
+typedef enum Dialect {
+    C99 = 0,
+    C11,
+    C17,
+    CPP11,
+    CPP14,
+    CPP17,
+    DIALECT_COUNT
+} Dialect;
+
+static const char *dialect_names[DIALECT_COUNT] = {
+    "c99",
+    "c11",
+    "c17",
+    "c++11",
+    "c++14",
+    "c++17"
+};
+
+Dialect dialect_from_str(const char *s);
 
 #endif
 

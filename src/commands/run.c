@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define DEBUG_RUN_SCRIPT (BUILDX_DIR "/run_debug.sh")
+#define RELEASE_RUN_SCRIPT (BUILDX_DIR "/run_release.sh")
+
 typedef enum RunMode {
     RM_DEBUG,
     RM_RELEASE
@@ -13,7 +16,7 @@ typedef struct CmdRunData {
 } CmdRunData;
 
 static void usage_run(void) {
-    printf("USAGE: bx run [-h] [-d|-r]\n");
+    printf("Usage: bx run [-h] [-d|-r]\n");
     printf("Options:\n");
     printf("    -d, --debug:     Run debug executable.\n");
     printf("    -r, --release:   Run release executable.\n");
@@ -99,19 +102,10 @@ bool cmd_run(ArgIter *args) {
         return false;
     }
 
-    switch (cmd_data.mode) {
-        case RM_DEBUG:
-            if (system(BUILDX_DIR "/run_debug.sh") == -1) {
-                logprint(LOG_FATAL, "Failed to execute run script 'build/run_debug.sh'.");
-                return false;
-            }
-            break;
-        case RM_RELEASE:
-            if (system(BUILDX_DIR "/run_release.sh") == -1) {
-                logprint(LOG_FATAL, "Failed to execute run script 'build/run_release.sh'.");
-                return false;
-            }
-            break;
+    const char *run_cmd = cmd_data.mode == RM_DEBUG ? DEBUG_RUN_SCRIPT : RELEASE_RUN_SCRIPT;
+    if (system(run_cmd) == -1) {
+        logprint(LOG_FATAL, "Failed to execute run script '%s'.", run_cmd);
+        return false;
     }
 
     return true;

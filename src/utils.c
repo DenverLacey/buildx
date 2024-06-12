@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <stdarg.h>
+#include <string.h>
 
 bool is_short(const char *flag) {
     if (!flag) return false;
@@ -24,8 +25,12 @@ char *strupper(char *s) {
     return s;
 }
 
+bool starts_with(const char *s, const char *prefix) {
+    return strncmp(s, prefix, strlen(prefix)) == 0;
+}
+
 #define COLOR_RESET "\033[m"
-#define COLOR_DEBUG   "\033[32m"
+#define COLOR_DEBUG "\033[32m"
 #define COLOR_INFO  "\033[36m"
 #define COLOR_WARN  "\033[33m"
 #define COLOR_ERROR "\033[31m"
@@ -58,5 +63,14 @@ void logprint(LogLevel lv, const char *__restrict fmt, ...) {
         vprintf(fmt, args);
         printf("\n");
     va_end(args);
+}
+
+Dialect dialect_from_str(const char *s) {
+    for (int i = 0; i < DIALECT_COUNT; i++) {
+        if (strcasecmp(s, dialect_names[i]) == 0) {
+            return (Dialect)i;
+        }
+    }
+    return -1;
 }
 

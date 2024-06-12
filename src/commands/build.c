@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include <strings.h>
 
+#define DEBUG_BUILD_SCRIPT (BUILDX_DIR "/build_debug.sh")
+#define RELEASE_BUILD_SCRIPT (BUILDX_DIR "/build_release.sh")
+
 typedef enum BuildMode {
     BM_DEBUG,
     BM_RELEASE
@@ -14,7 +17,7 @@ typedef struct CmdBuildData {
 } CmdBuildData;
 
 static void usage_build(void) {
-    printf("USAGE: bx build [-h] [-d|-r]\n");
+    printf("Usage: bx build [-h|-d|-r]\n");
     printf("Options:\n");
     printf("    -d, --debug:     Build debug executable.\n");
     printf("    -r, --release:   Build release executable.\n");
@@ -100,19 +103,10 @@ bool cmd_build(ArgIter *args) {
         return false;
     }
 
-    switch (cmd_data.mode) {
-        case BM_DEBUG:
-            if (system("build/build_debug.sh") == -1) {
-                logprint(LOG_FATAL, "Failed to run build script 'build/build_debug.sh'.");
-                return false;
-            }
-            break;
-        case BM_RELEASE:
-            if (system("build/build_release.sh") == -1) {
-                logprint(LOG_FATAL, "Failed to run build script 'build/build_release.sh'.");
-                return false;
-            }
-            break;
+    const char *build_cmd = cmd_data.mode == BM_DEBUG ? DEBUG_BUILD_SCRIPT : RELEASE_BUILD_SCRIPT;
+    if (system(build_cmd) == -1) {
+        logprint(LOG_FATAL, "Failed to run build script '%s'.", build_cmd);
+        return false;
     }
 
     return true;
