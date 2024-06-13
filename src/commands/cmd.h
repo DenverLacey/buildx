@@ -20,6 +20,7 @@ typedef struct CmdFlagInfo {
 bool cmd_new(ArgIter *args, const char *bx_path);
 bool cmd_build(ArgIter *args);
 bool cmd_run(ArgIter *args);
+bool cmd_project(ArgIter *args);
 
 #endif
 

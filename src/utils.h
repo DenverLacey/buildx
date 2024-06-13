@@ -4,8 +4,8 @@
 #include <stdbool.h>
 
 #define MAJOR_VERSION (0)    // Changes when incompatible API changes are made.
-#define MINOR_VERSION (3)    // Changes when functionality is added in a backwards compatible manner.
-#define PATCH_VERSION (1)    // Changes when backwards compatible bug fixes and refactors are made.
+#define MINOR_VERSION (4)    // Changes when functionality is added in a backwards compatible manner.
+#define PATCH_VERSION (0)    // Changes when backwards compatible bug fixes and refactors are made.
 
 bool version_is_current(int major, int minor);
 
