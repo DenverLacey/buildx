@@ -442,7 +442,7 @@ bool make_premake_file(CmdNewData *cmd_data) {
     fprintf(f, "\n");
 
 CLEAN_UP_AND_RETURN:
-    fclose(f);
+    if (f) fclose(f);
     return result;
 }
 

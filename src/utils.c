@@ -4,6 +4,10 @@
 #include <stdarg.h>
 #include <string.h>
 
+bool version_is_current(int major, int minor) {
+    return major == MAJOR_VERSION && minor == MINOR_VERSION;
+}
+
 bool is_short(const char *flag) {
     if (!flag) return false;
     if (flag[0] == '\0') return false;
