@@ -106,7 +106,6 @@ bool read_conf(const char *path, Conf *conf) {
                         logprint(LOG_ERROR, "Unable to parse version. %s", line);
                         RETURN(false);
                     }
-                    logprint(LOG_DEBUG, "version = %d.%d.%d\n", &conf->buildx.major, &conf->buildx.minor, &conf->buildx.patch);
                 } else {
                     logprint(LOG_ERROR, "Unexpected line in [buildx] section of conf.ini file: %s\n", line);
                     RETURN(false);

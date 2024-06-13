@@ -9,18 +9,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/_types/_mode_t.h>
 #include <sys/stat.h>
 #include <sys/syslimits.h>
 
 typedef struct CmdNewData {
-    const char *project_path;
-    const char *project_name;
-    const char *executable_name;
-    const char *output_dir;
+    const char *proj_path;
+    const char *proj_name;
+    const char *exe_name;
+    const char *out_dir;
     const char *src_dir;
     Dialect dialect;
-    bool create_project_dir;
+    bool create_proj_dir;
 } CmdNewData;
 
 static void usage_new(void) {
@@ -53,7 +52,7 @@ static bool cmd_new_output_dir(ArgIter *args, void *cmd_data) {
         return false;
     }
 
-    new_data->output_dir = path;
+    new_data->out_dir = path;
 
     return true;
 }
@@ -116,7 +115,7 @@ static bool cmd_new_name(ArgIter *args, void *cmd_data) {
         return false;
     }
 
-    new_data->executable_name = name;
+    new_data->exe_name = name;
 
     return true;
 }
@@ -178,16 +177,16 @@ bool process_options(ArgIter *args, const char *bx_path, CmdNewData *cmd_data) {
         }
     }
 
-    cmd_data->create_project_dir = args->length != 0;
+    cmd_data->create_proj_dir = args->length != 0;
 
     if (args->length != 0) {
-        cmd_data->project_path = iter_next(args);
-        if (!cmd_data->project_path) {
+        cmd_data->proj_path = iter_next(args);
+        if (!cmd_data->proj_path) {
             logprint(LOG_FATAL, "project_path was null.");
             return false;
         }
 
-        if (strcmp(cmd_data->project_path, ".") == 0) {
+        if (strcmp(cmd_data->proj_path, ".") == 0) {
             chdir(bx_path);
             char path_buf[PATH_MAX];
             const char *cwd = getcwd(path_buf, PATH_MAX);
@@ -197,8 +196,8 @@ bool process_options(ArgIter *args, const char *bx_path, CmdNewData *cmd_data) {
             }
 
             char *real_buf = malloc(PATH_MAX); // LEAK
-            cmd_data->project_path = realpath(cwd, real_buf);
-            if (!cmd_data->project_path) {
+            cmd_data->proj_path = realpath(cwd, real_buf);
+            if (!cmd_data->proj_path) {
                 const char *err = strerror(errno);
                 logprint(LOG_FATAL, "Failed to canonicalize cwd: %s.", err);
                 return false;
@@ -215,31 +214,31 @@ bool process_options(ArgIter *args, const char *bx_path, CmdNewData *cmd_data) {
         }
 
         char *real_buf = malloc(PATH_MAX); // LEAK
-        cmd_data->project_path = realpath(cwd, real_buf);
-        if (!cmd_data->project_path) {
+        cmd_data->proj_path = realpath(cwd, real_buf);
+        if (!cmd_data->proj_path) {
             const char *err = strerror(errno);
             logprint(LOG_FATAL, "Failed to canonicalize cwd: %s.", err);
             return false;
         }
     }
 
-    cmd_data->project_name = strrchr(cmd_data->project_path, '/');
-    if (!cmd_data->project_name) {
-        cmd_data->project_name = cmd_data->project_path;
+    cmd_data->proj_name = strrchr(cmd_data->proj_path, '/');
+    if (!cmd_data->proj_name) {
+        cmd_data->proj_name = cmd_data->proj_path;
     } else {
-        cmd_data->project_name++; // remove leading '/'
+        cmd_data->proj_name++; // remove leading '/'
     }
 
-    if (!cmd_data->executable_name) {
-        cmd_data->executable_name = cmd_data->project_name;
+    if (!cmd_data->exe_name) {
+        cmd_data->exe_name = cmd_data->proj_name;
     }
 
     return true;
 }
 
 bool make_project_directories(CmdNewData *cmd_data) {
-    if (cmd_data->create_project_dir) {
-        int status = mkdir(cmd_data->project_path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    if (cmd_data->create_proj_dir) {
+        int status = mkdir(cmd_data->proj_path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
         if (status == -1) {
             const char *err = strerror(errno);
             logprint(LOG_ERROR, "Failed to create project directory: %s.", err);
@@ -249,8 +248,8 @@ bool make_project_directories(CmdNewData *cmd_data) {
 
     int status;
     char path[PATH_MAX];
-    const char *proj_dir = cmd_data->project_path ? cmd_data->project_path : ".";
-    const char *out_dir = cmd_data->output_dir ? cmd_data->output_dir : "bin";
+    const char *proj_dir = cmd_data->proj_path ? cmd_data->proj_path : ".";
+    const char *out_dir = cmd_data->out_dir ? cmd_data->out_dir : "bin";
     const char *src_dir = cmd_data->src_dir ? cmd_data->src_dir : "src";
 
     // Output Directory
@@ -266,7 +265,7 @@ bool make_project_directories(CmdNewData *cmd_data) {
     status = mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     if (status == -1) {
         if (status == EEXIST) {
-            logprint(LOG_WARN, "'%s' already exists.", cmd_data->project_path);
+            logprint(LOG_WARN, "'%s' already exists.", cmd_data->proj_path);
             return true;
         }
         const char *err = strerror(errno);
@@ -287,7 +286,7 @@ bool make_project_directories(CmdNewData *cmd_data) {
     status = mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     if (status == -1) {
         if (status == EEXIST) {
-            logprint(LOG_WARN, "'%s' already exists.", cmd_data->project_path);
+            logprint(LOG_WARN, "'%s' already exists.", cmd_data->proj_path);
             return true;
         }
         const char *err = strerror(errno);
@@ -309,12 +308,25 @@ bool make_project_directories(CmdNewData *cmd_data) {
 
 bool make_config_file(CmdNewData *cmd_data) {
     Proj_Conf conf = {
-        .proj_dir = cmd_data->project_path ? cmd_data->project_path : ".",
-        .exe_name = cmd_data->executable_name,
-        .out_dir = cmd_data->output_dir ? cmd_data->output_dir : "bin",
+        .exe_name = cmd_data->exe_name,
+        .out_dir = cmd_data->out_dir ? cmd_data->out_dir : "bin",
         .src_dir = cmd_data->src_dir ? cmd_data->src_dir : "src",
         .dialect = cmd_data->dialect,
     };
+
+    char cwd[PATH_MAX];
+    if (!getcwd(cwd, sizeof(cwd))) {
+        const char *err = strerror(errno);
+        logprint(LOG_FATAL, "Failed to get CWD: %s.", err);
+    }
+
+    if (cmd_data->proj_path) {
+        char proj_dir[PATH_MAX];
+        snprintf(proj_dir, sizeof(proj_dir), "%s/%s", cwd, cmd_data->proj_path);
+        conf.proj_dir = proj_dir;
+    } else {
+        conf.proj_dir = cwd;
+    }
 
     char path[PATH_MAX];
     snprintf(path, sizeof(path), "%s/%s/conf.ini", conf.proj_dir, BUILDX_DIR);
@@ -326,7 +338,7 @@ bool make_main_file(CmdNewData *cmd_data) {
     bool result = true;
     FILE *f = NULL;
 
-    const char *proj_dir = cmd_data->project_path ? cmd_data->project_path : ".";
+    const char *proj_dir = cmd_data->proj_path ? cmd_data->proj_path : ".";
     const char *src_dir = cmd_data->src_dir ? cmd_data->src_dir : "src";
     const char *ext = cmd_data->dialect < CPP11 ? "c" : "cpp";
 
@@ -347,7 +359,7 @@ bool make_main_file(CmdNewData *cmd_data) {
     fprintf(f, "#include <stdio.h>\n");
     fprintf(f, "\n");
     fprintf(f, "int main(void) {\n");
-    fprintf(f, "    printf(\"Hello, %s!\\n\");\n", cmd_data->executable_name);
+    fprintf(f, "    printf(\"Hello, %s!\\n\");\n", cmd_data->exe_name);
     fprintf(f, "    return 0;\n");
     fprintf(f, "}\n");
     fprintf(f, "\n");
@@ -361,8 +373,8 @@ bool make_premake_file(CmdNewData *cmd_data) {
     bool result = true;
     FILE *f = NULL;
 
-    const char *proj_dir = cmd_data->project_path ? cmd_data->project_path : ".";
-    const char *out_dir = cmd_data->output_dir ? cmd_data->output_dir : "bin";
+    const char *proj_dir = cmd_data->proj_path ? cmd_data->proj_path : ".";
+    const char *out_dir = cmd_data->out_dir ? cmd_data->out_dir : "bin";
     const char *src_dir = cmd_data->src_dir ? cmd_data->src_dir : "src";
 
     const char *lang = cmd_data->dialect < CPP11 ? "C" : "C++";
@@ -387,10 +399,10 @@ bool make_premake_file(CmdNewData *cmd_data) {
         RETURN(false);
     }
 
-    fprintf(f, "workspace '%s'\n", cmd_data->project_name);
+    fprintf(f, "workspace '%s'\n", cmd_data->proj_name);
     fprintf(f, "configurations { 'debug', 'release' }\n");
     fprintf(f, "\n");
-    fprintf(f, "project '%s'\n", cmd_data->executable_name);
+    fprintf(f, "project '%s'\n", cmd_data->exe_name);
     fprintf(f, "    kind 'ConsoleApp'\n");
     fprintf(f, "    language '%s'\n", lang);
     fprintf(f, "    %sdialect '%s'\n", dialect_lang, dialect);
@@ -434,153 +446,6 @@ CLEAN_UP_AND_RETURN:
     return result;
 }
 
-bool make_build_scripts(CmdNewData *cmd_data) {
-    bool result = true;
-    FILE *build_debug = NULL;
-    FILE *build_release = NULL;
-    FILE *run_debug = NULL;
-    FILE *run_release = NULL;
-
-    const char *proj_dir = cmd_data->project_path ? cmd_data->project_path : ".";
-    const char *out_dir = cmd_data->output_dir ? cmd_data->output_dir : "bin";
-    const char *backend = "gmake2";
-
-    mode_t mode = S_IRUSR | S_IWUSR | S_IXUSR;
-
-    char path[PATH_MAX];
-    snprintf(path, sizeof(path), "%s/%s/build_debug.sh", proj_dir, BUILDX_DIR);
-
-    build_debug = fopen(path, "wx");
-    if (!build_debug) {
-        if (errno == EEXIST) {
-            logprint(LOG_WARN, "'%s' already exists.", path);
-            RETURN(true);
-        }
-        const char *err = strerror(errno);
-        logprint(LOG_ERROR, "Failed to create '%s': %s", path, err);
-        RETURN(false);
-    }
-
-    fprintf(build_debug, "#!/bin/bash\n");
-    fprintf(build_debug, "\n");
-    fprintf(build_debug, "# premake commands\n");
-    fprintf(build_debug, "premake5 %s\n", backend);
-    fprintf(build_debug, "premake5 export-compile-commands\n");
-    fprintf(build_debug, "cp compile_commands/debug.json compile_commands.json\n");
-    fprintf(build_debug, "mv compile_commands %s/compile_commands\n", BUILDX_DIR);
-    fprintf(build_debug, "\n");
-    fprintf(build_debug, "# backend commands\n"); // TODO: Hardcoded backend.
-    fprintf(build_debug, "make config=debug\n");
-    fprintf(build_debug, "\n");
-
-    int chmod_result = chmod(path, mode);
-    if (chmod_result == -1) {
-        const char *err = strerror(errno);
-        logprint(LOG_FATAL, "Failed to give permissions to 'build_debug.sh': %s", err);
-        RETURN(false);
-    }
-
-    snprintf(path, sizeof(path), "%s/%s/build_release.sh", proj_dir, BUILDX_DIR);
-
-    build_release = fopen(path, "wx");
-    if (!build_release) {
-        if (errno == EEXIST) {
-            logprint(LOG_WARN, "'%s' already exists.", path);
-            RETURN(true);
-        }
-        const char *err = strerror(errno);
-        logprint(LOG_ERROR, "Failed to create '%s': %s", path, err);
-        RETURN(false);
-    }
-
-    fprintf(build_release, "#!/bin/bash\n");
-    fprintf(build_release, "\n");
-    fprintf(build_release, "# premake commands\n");
-    fprintf(build_release, "premake5 --file=%s/premake5.lua %s\n", BUILDX_DIR, backend);
-    fprintf(build_release, "premake5 --file=%s/premake5.lua export-compile-commands\n", BUILDX_DIR);
-    fprintf(build_release, "cp %s/compile_commands/debug.json compile_commands.json\n", BUILDX_DIR);
-    fprintf(build_release, "\n");
-    fprintf(build_release, "# backend commands\n"); // TODO: Hardcoded backend.
-    fprintf(build_release, "make config=release\n");
-    fprintf(build_release, "\n");
-
-    chmod_result = chmod(path, mode);
-    if (chmod_result == -1) {
-        const char *err = strerror(errno);
-        logprint(LOG_FATAL, "Failed to give permissions to 'build_release.sh': %s", err);
-        RETURN(false);
-    }
-
-    snprintf(path, sizeof(path), "%s/%s/run_debug.sh", proj_dir, BUILDX_DIR);
-
-    run_debug = fopen(path, "wx");
-    if (!run_debug) {
-        if (errno == EEXIST) {
-            logprint(LOG_WARN, "'%s' already exists.", path);
-            RETURN(true);
-        }
-        const char *err = strerror(errno);
-        logprint(LOG_ERROR, "Failed to create '%s': %s", path, err);
-        RETURN(false);
-    }
-
-    // TODO: Forwarding arguments to the executable
-    fprintf(run_debug, "#!/bin/bash\n");
-    fprintf(run_debug, "\n");
-    fprintf(run_debug, "if ! [ -f %s/debug/%s ]; then\n", out_dir, cmd_data->executable_name);
-    fprintf(run_debug, "    echo \"ERROR: No executable. use `bx build --debug` first.\"\n");
-    fprintf(run_debug, "    exit\n");
-    fprintf(run_debug, "fi\n");
-    fprintf(run_debug, "\n");
-    fprintf(run_debug, "%s/debug/%s\n", out_dir, cmd_data->executable_name);
-    fprintf(run_debug, "\n");
-
-    chmod_result = chmod(path, mode);
-    if (chmod_result == -1) {
-        const char *err = strerror(errno);
-        logprint(LOG_FATAL, "Failed to give permissions to 'run_debug.sh': %s", err);
-        RETURN(false);
-    }
-
-    snprintf(path, sizeof(path), "%s/%s/run_release.sh", proj_dir, BUILDX_DIR);
-
-    run_release = fopen(path, "wx");
-    if (!run_release) {
-        if (errno == EEXIST) {
-            logprint(LOG_WARN, "'%s' already exists.", path);
-            RETURN(true);
-        }
-        const char *err = strerror(errno);
-        logprint(LOG_ERROR, "Failed to create '%s': %s", path, err);
-        RETURN(false);
-    }
-
-    // TODO: Forwarding arguments to the executable
-    fprintf(run_release, "#!/bin/bash\n");
-    fprintf(run_release, "\n");
-    fprintf(run_release, "if ! [ -f %s/release/%s ]; then\n", out_dir, cmd_data->executable_name);
-    fprintf(run_release, "    echo \"ERROR: No executable. use `bx build --release` first.\"\n");
-    fprintf(run_release, "    exit\n");
-    fprintf(run_release, "fi\n");
-    fprintf(run_release, "\n");
-    fprintf(run_release, "%s/release/%s\n", out_dir, cmd_data->executable_name);
-    fprintf(run_release, "\n");
-
-    chmod_result = chmod(path, mode);
-    if (chmod_result == -1) {
-        const char *err = strerror(errno);
-        logprint(LOG_FATAL, "Failed to give permissions to 'run_release.sh': %s", err);
-        RETURN(false);
-    }
-
-CLEAN_UP_AND_RETURN:
-    if (build_debug) fclose(build_debug);
-    if (build_release) fclose(build_release);
-    if (run_debug) fclose(run_debug);
-    if (run_release) fclose(run_release);
-    return result;
-}
-
 bool cmd_new(ArgIter *args, const char *bx_path) {
     bool ok;
     CmdNewData cmd_data = {0};
@@ -606,11 +471,6 @@ bool cmd_new(ArgIter *args, const char *bx_path) {
     }
 
     ok = make_premake_file(&cmd_data);
-    if (!ok) {
-        return false;
-    }
-
-    ok = make_build_scripts(&cmd_data);
     if (!ok) {
         return false;
     }

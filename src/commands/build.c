@@ -4,9 +4,6 @@
 #include <stdlib.h>
 #include <strings.h>
 
-#define DEBUG_BUILD_SCRIPT (BUILDX_DIR "/build_debug.sh")
-#define RELEASE_BUILD_SCRIPT (BUILDX_DIR "/build_release.sh")
-
 typedef enum BuildMode {
     BM_DEBUG,
     BM_RELEASE
@@ -94,6 +91,13 @@ static bool process_options(ArgIter *args, CmdBuildData *cmd_data) {
     return true;
 }
 
+static const char *build_cmd_fmt = 
+    "premake5 gmake2; "
+    "premake5 export-compile-commands; "
+    "cp compile_commands/debug.json compile_commands.json; "
+    "mv compile_commands " BUILDX_DIR "/compile_commands; "
+    "make config=%s";
+
 bool cmd_build(ArgIter *args) {
     bool ok;
     CmdBuildData cmd_data = {0};
@@ -103,9 +107,13 @@ bool cmd_build(ArgIter *args) {
         return false;
     }
 
-    const char *build_cmd = cmd_data.mode == BM_DEBUG ? DEBUG_BUILD_SCRIPT : RELEASE_BUILD_SCRIPT;
-    if (system(build_cmd) == -1) {
-        logprint(LOG_FATAL, "Failed to run build script '%s'.", build_cmd);
+    const char *mode_str = cmd_data.mode == BM_RELEASE ? "release" : "debug";
+
+    char cmd[2048];
+    snprintf(cmd, sizeof(cmd), build_cmd_fmt, mode_str);
+
+    if (system(cmd) == -1) {
+        logprint(LOG_FATAL, "Failed to run build command '%s'.", cmd);
         return false;
     }
 

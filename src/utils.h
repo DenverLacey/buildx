@@ -16,8 +16,8 @@
     _Pragma("clang diagnostic pop")
 
 #define RETURN(...) do {                                                       \
-	result = __VA_ARGS__;                                                      \
-	goto CLEAN_UP_AND_RETURN;                                                  \
+    result = __VA_ARGS__;						       \
+    goto CLEAN_UP_AND_RETURN;                                                  \
 } while (0)
 
 bool is_short(const char *flag);

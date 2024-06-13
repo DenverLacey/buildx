@@ -11,7 +11,8 @@ project "bx"
     }
 
     includedirs {
-        "src"
+        "src",
+        "../twine"
     }
 
     filter "action:gmake2"

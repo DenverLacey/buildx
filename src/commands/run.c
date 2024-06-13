@@ -1,10 +1,14 @@
+#include "argiter.h"
 #include "cmd.h"
+#include "conf.h"
 #include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/syslimits.h>
+#include <unistd.h>
 
-#define DEBUG_RUN_SCRIPT (BUILDX_DIR "/run_debug.sh")
-#define RELEASE_RUN_SCRIPT (BUILDX_DIR "/run_release.sh")
+#define TWINE_IMPLEMENTATION
+#include "twine.h"
 
 typedef enum RunMode {
     RM_DEBUG,
@@ -97,14 +101,55 @@ bool cmd_run(ArgIter *args) {
     bool ok;
     CmdRunData cmd_data = {0};
 
+    static const char *conf_path = BUILDX_DIR "/conf.ini";
+    Conf conf;
+    if (!read_conf(conf_path, &conf)) {
+        logprint(LOG_FATAL, "Couldn't read conf.ini file at '%s'.", conf_path);
+        return false;
+    }
+
     ok = process_options(args, &cmd_data);
     if (!ok) {
         return false;
     }
 
-    const char *run_cmd = cmd_data.mode == RM_DEBUG ? DEBUG_RUN_SCRIPT : RELEASE_RUN_SCRIPT;
-    if (system(run_cmd) == -1) {
-        logprint(LOG_FATAL, "Failed to execute run script '%s'.", run_cmd);
+    char cmd_buf[2048];
+    twStringBuf cmdbuf = twStaticBuf(cmd_buf);
+
+    const char *mode_str = cmd_data.mode == RM_RELEASE ? "release" : "debug";
+
+    char exe_path[PATH_MAX];
+    snprintf(exe_path, sizeof(exe_path), "%s/%s/%s", conf.proj.out_dir, mode_str, conf.proj.exe_name);
+
+    if (access(exe_path, F_OK) != 0) {
+        logprint(LOG_ERROR, "No executable. Use `bs build --%s` first.", mode_str);
+        return false;
+    }
+
+    if (!twAppendASCII(&cmdbuf, twStr(exe_path))) {
+        logprint(LOG_FATAL, "Failed to append executable path to command.");
+        return false;
+    }
+
+    if (iter_match(args, "--")) {
+        while (args->length > 0) {
+            const char *arg = iter_next(args);
+            if (!twAppendFmtUTF8(&cmdbuf, " %s", arg)) {
+                logprint(LOG_FATAL, "Failed to append argument to command.");
+                return false;
+            }
+        }
+    }
+
+    twPushASCII(&cmdbuf, '\0');
+
+    twString cmd_str = twBufToString(cmdbuf);
+    const char *cmd = cmd_str.bytes;
+
+    logprint(LOG_DEBUG, "cmd = '%s'", cmd);
+
+    if (system(cmd) == -1) {
+        logprint(LOG_FATAL, "Failed to run executable '%s'.", exe_path);
         return false;
     }
 
