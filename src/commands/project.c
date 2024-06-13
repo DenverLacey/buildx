@@ -1,7 +1,6 @@
 #include "cmd.h"
 
 #include "argiter.h"
-#include "conf.h"
 #include "utils.h"
 
 #include <assert.h>
