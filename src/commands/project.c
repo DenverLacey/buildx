@@ -1,11 +1,14 @@
 #include "cmd.h"
 
 #include "argiter.h"
+#include "conf.h"
 #include "utils.h"
 
 #include <assert.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #include <sys/syslimits.h>
 #include <unistd.h>
 
@@ -67,6 +70,36 @@ static bool process_options(ArgIter *args, CmdProjectData *cmd_data) {
     return true;
 }
 
+static bool cmd_project_upgrade(ArgIter *args, CmdProjectData *cmd_data) {
+    const char *build_dir = NULL;
+    struct stat s = {0};
+    if (stat("./" BUILDX_DIR, &s) != 0) {
+        build_dir = BUILDX_DIR;
+    } else if (stat("./build", &s) != 0) {
+        build_dir = "build";
+    } else {
+        assert(!"TODO");
+    }
+
+    if (!S_ISDIR(s.st_mode)) {
+        assert(!"TODO");
+    }
+
+    char conf_path[PATH_MAX];
+    snprintf(conf_path, sizeof(conf_path), "./%s/conf.ini", build_dir);
+
+    if (access(conf_path, F_OK) != 0) {
+        assert(!"TODO");
+    }
+
+    Conf conf;
+    if (!read_conf(conf_path, &conf)) {
+        assert(!"TODO");
+    }
+
+    assert(!"TODO");
+}
+
 bool cmd_project(ArgIter *args) {
     CmdProjectData cmd_data = {0};
 
@@ -75,7 +108,9 @@ bool cmd_project(ArgIter *args) {
             return false;
         }
 
-        assert(!"TODO");
+        if (!cmd_project_upgrade(args, &cmd_data)) {
+            return false;
+        }
     } else {
         if (!process_options(args, &cmd_data)) {
             return false;
