@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 void usage(void) {
-    printf("Usage: bx {new,build,run,help,version} ...\n");
+    printf("Usage: bx {new,build,run,project,help,version} ...\n");
     printf("    new:     Initialize a new project.\n");
     printf("             Use `bx new --help` for more info.\n");
     printf("    build:   Build project.\n");
