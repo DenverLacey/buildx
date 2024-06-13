@@ -146,8 +146,6 @@ bool cmd_run(ArgIter *args) {
     twString cmd_str = twBufToString(cmdbuf);
     const char *cmd = cmd_str.bytes;
 
-    logprint(LOG_DEBUG, "cmd = '%s'", cmd);
-
     if (system(cmd) == -1) {
         logprint(LOG_FATAL, "Failed to run executable '%s'.", exe_path);
         return false;

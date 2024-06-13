@@ -4,14 +4,15 @@
 #include <stdio.h>
 
 void usage(void) {
-    printf("Usage: bx {new,build,run,help} ...\n");
-    printf("    new:   Initialize a new project.\n");
-    printf("           Use `bx new --help` for more info.\n");
-    printf("    build: Build project.\n");
-    printf("           Use `bx build --help` for more info.\n");
-    printf("    run:   Run your already built project.\n");
-    printf("           Use `bx run --help` for more info.\n");
-    printf("    help:  Show this help message.\n");
+    printf("Usage: bx {new,build,run,help,version} ...\n");
+    printf("    new:     Initialize a new project.\n");
+    printf("             Use `bx new --help` for more info.\n");
+    printf("    build:   Build project.\n");
+    printf("             Use `bx build --help` for more info.\n");
+    printf("    run:     Run your already built project.\n");
+    printf("             Use `bx run --help` for more info.\n");
+    printf("    help:    Show this help message.\n");
+    printf("    version: Show buildx version.\n");
 }
 
 int main(int argc, const char **argv) {
@@ -36,6 +37,8 @@ int main(int argc, const char **argv) {
         cmd_run(&args);
     } else if (iter_match(&args, "help")) {
         usage();
+    } else if (iter_match(&args, "version")) {
+        printf("%d.%d.%d\n", MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION);
     } else {
         const char *unknown = iter_next(&args);
         logprint(LOG_ERROR, "'%s' is not a valid command.", unknown);
