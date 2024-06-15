@@ -4,6 +4,9 @@
 #include <stdarg.h>
 #include <string.h>
 
+#define TWINE_IMPLEMENTATION
+#include "twine.h"
+
 bool version_is_current(int major, int minor) {
     return major == MAJOR_VERSION && minor == MINOR_VERSION;
 }

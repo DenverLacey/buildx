@@ -7,9 +7,6 @@
 #include <sys/syslimits.h>
 #include <unistd.h>
 
-#define TWINE_IMPLEMENTATION
-#include "twine.h"
-
 typedef enum RunMode {
     RM_DEBUG,
     RM_RELEASE
@@ -154,9 +151,7 @@ bool cmd_run(ArgIter *args) {
 
     twPushASCII(&cmdbuf, '\0');
 
-    twString cmd_str = twBufToString(cmdbuf);
-    const char *cmd = cmd_str.bytes;
-
+    const char *cmd = twToC(cmdbuf);
     if (system(cmd) == -1) {
         logprint(LOG_FATAL, "Failed to run executable '%s'.", exe_path);
         return false;
