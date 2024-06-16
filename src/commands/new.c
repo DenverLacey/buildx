@@ -307,7 +307,7 @@ bool make_project_directories(CmdNewData *cmd_data) {
 }
 
 bool make_config_file(CmdNewData *cmd_data) {
-    Proj_Conf conf = {
+    ProjConf conf = {
         .exe_name = cmd_data->exe_name,
         .out_dir = cmd_data->out_dir ? cmd_data->out_dir : "bin",
         .src_dir = cmd_data->src_dir ? cmd_data->src_dir : "src",

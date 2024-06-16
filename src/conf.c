@@ -8,7 +8,7 @@
 #include <string.h>
 #include <sys/syslimits.h>
 
-bool write_conf(const char *path, Proj_Conf conf) {
+bool write_conf(const char *path, ProjConf conf) {
     bool result = true;
     FILE *f = NULL;
 

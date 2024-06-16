@@ -9,7 +9,7 @@ typedef struct {
 	int major;
 	int minor;
 	int patch;
-} Buildx_Conf;
+} BuildxConf;
 
 typedef struct {
 	const char *proj_dir;
@@ -17,14 +17,14 @@ typedef struct {
 	const char *out_dir;
 	const char *src_dir;
 	Dialect dialect;
-} Proj_Conf;
+} ProjConf;
 
 typedef struct {
-	Buildx_Conf buildx;
-	Proj_Conf proj;
+	BuildxConf buildx;
+	ProjConf proj;
 } Conf;
 
-bool write_conf(const char *path, Proj_Conf conf);
+bool write_conf(const char *path, ProjConf conf);
 bool read_conf(const char *path, Conf *conf);
 
 #endif // _CONF_H_ 
