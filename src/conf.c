@@ -64,6 +64,26 @@ static Conf unset_conf = {
     .proj.dialect = -1,
 };
 
+static bool conf_incomplete(Conf c) {
+    if (c.buildx.major == unset_conf.buildx.major ||
+        c.buildx.minor == unset_conf.buildx.minor ||
+        c.buildx.patch == unset_conf.buildx.patch)
+    {
+        return true;
+    }
+
+    if (c.proj.proj_dir == unset_conf.proj.proj_dir ||
+        c.proj.exe_name == unset_conf.proj.exe_name ||
+        c.proj.out_dir == unset_conf.proj.out_dir ||
+        c.proj.src_dir == unset_conf.proj.src_dir ||
+        c.proj.dialect == unset_conf.proj.dialect)
+    {
+        return true;
+    }
+
+    return false;
+}
+
 bool read_conf(const char *path, Conf *conf) {
     *conf = unset_conf;
 
@@ -96,7 +116,7 @@ bool read_conf(const char *path, Conf *conf) {
                     current_section = SEC_PROJECT;
                 } else {
                     logprint(LOG_ERROR, "Unexpected line in conf.ini file: %s\n", line);
-                    RETURN(false);
+                    result = false;
                 }
             } break;
             case SEC_BULIDX: {
@@ -104,11 +124,11 @@ bool read_conf(const char *path, Conf *conf) {
                     int nscanned = sscanf(line, "version = %d.%d.%d\n", &conf->buildx.major, &conf->buildx.minor, &conf->buildx.patch);
                     if (nscanned != 3) {
                         logprint(LOG_ERROR, "Unable to parse version. %s", line);
-                        RETURN(false);
+                        result = false;
                     }
                 } else {
                     logprint(LOG_ERROR, "Unexpected line in [buildx] section of conf.ini file: %s\n", line);
-                    RETURN(false);
+                    result = false;
                 }
             } break;
             case SEC_PROJECT: {
@@ -128,18 +148,18 @@ bool read_conf(const char *path, Conf *conf) {
                     conf->proj.dialect = dialect_from_str(field);
                 } else {
                     logprint(LOG_ERROR, "Unexpected line in [project] section of conf.ini file: %s\n", line);
-                    RETURN(false);
+                    result = false;
                 }
             } break;
             default:
                 logprint(LOG_FATAL, "Invalid Section value: %d\n", current_section);
-                RETURN(false);
+                result = false;
         }
     }
 
-    if (memcmp(conf, &unset_conf, sizeof(Conf)) == 0) {
+    if (conf_incomplete(*conf)) {
         logprint(LOG_ERROR, "Configuration incomplete.");
-        RETURN(false);
+        result = false;
     }
 
 CLEAN_UP_AND_RETURN:

@@ -71,6 +71,50 @@ static bool process_options(ArgIter *args, CmdProjectData *cmd_data) {
     return true;
 }
 
+static bool cmd_project_upgrade_no_build_dir(ArgIter *args, CmdProjectData *cmd_data) {
+    UNUSED(args, cmd_data);
+    return false;
+}
+
+static bool cmd_project_upgrade_no_conf_file(ArgIter *args, CmdProjectData *cmd_data, const char *build_dir) {
+    UNUSED(args, cmd_data, build_dir);
+    return false;
+}
+
+static bool cmd_project_upgrade_incomplete_conf(ArgIter *args, CmdProjectData *cmd_data, const char *build_dir, Conf conf) {
+    UNUSED(args, cmd_data, build_dir, conf);
+
+    static_assert(MAJOR_VERSION == 0 && MINOR_VERSION == 4 && PATCH_VERSION == 0, "Version has changed. Confirm this is still correct.");
+
+    bool result = true;
+    FILE *premake_file = NULL;
+
+    premake_file = fopen("./premake5.lua", "r");
+    if (!premake_file) {
+        logprint(LOG_FATAL, "Couldn't open premake file at '%s'.", "./premake5.lua");
+        RETURN(false);
+    }
+
+    assert(!"TODO");
+
+CLEAN_UP_AND_RETURN:
+    if (premake_file) fclose(premake_file);
+    return result;
+}
+
+static bool cmd_project_upgrade_with_conf(ArgIter *args, CmdProjectData *cmd_data, const char *conf_path, Conf conf) {
+    UNUSED(args, cmd_data);
+
+    if (version_is_current(conf.buildx.major, conf.buildx.minor, conf.buildx.patch)) {
+        return true;
+    }
+
+    // WARN: If the conf file is complete this suggests that things are compatible enough to not make any changes.
+    // This could prove to be wrong at some point but for right now this is what we're doing.
+    conf.buildx.patch = PATCH_VERSION;
+    return write_conf(conf_path, conf.proj);
+}
+
 static bool cmd_project_upgrade(ArgIter *args, CmdProjectData *cmd_data) {
     UNUSED(args, cmd_data);
 
@@ -81,26 +125,26 @@ static bool cmd_project_upgrade(ArgIter *args, CmdProjectData *cmd_data) {
     } else if (stat("./build", &s) != 0) {
         build_dir = "build";
     } else {
-        assert(!"TODO");
+        return cmd_project_upgrade_no_build_dir(args, cmd_data);
     }
 
     if (!S_ISDIR(s.st_mode)) {
-        assert(!"TODO");
+        return cmd_project_upgrade_no_build_dir(args, cmd_data);
     }
 
     char conf_path[PATH_MAX];
     snprintf(conf_path, sizeof(conf_path), "./%s/conf.ini", build_dir);
 
     if (access(conf_path, F_OK) != 0) {
-        assert(!"TODO");
+        return cmd_project_upgrade_no_conf_file(args, cmd_data, build_dir);
     }
 
-    Conf conf;
+    Conf conf = {0};
     if (!read_conf(conf_path, &conf)) {
-        assert(!"TODO");
+        return cmd_project_upgrade_incomplete_conf(args, cmd_data, build_dir, conf);
     }
 
-    assert(!"TODO");
+    return cmd_project_upgrade_with_conf(args, cmd_data, conf_path, conf);
 }
 
 // TODO: 

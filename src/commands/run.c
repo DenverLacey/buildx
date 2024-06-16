@@ -105,7 +105,7 @@ bool cmd_run(ArgIter *args) {
         return false;
     }
 
-    if (!version_is_current(conf.buildx.major, conf.buildx.minor)) {
+    if (!version_is_compatible(conf.buildx.major, conf.buildx.minor)) {
         logprint(LOG_WARN, "Mismatched version %d.%d.%d. This version is %d.%d.%d.\n",
             conf.buildx.major,
             conf.buildx.minor,

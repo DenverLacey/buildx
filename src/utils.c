@@ -7,8 +7,12 @@
 #define TWINE_IMPLEMENTATION
 #include "twine.h"
 
-bool version_is_current(int major, int minor) {
+bool version_is_compatible(int major, int minor) {
     return major == MAJOR_VERSION && minor == MINOR_VERSION;
+}
+
+bool version_is_current(int major, int minor, int patch) {
+    return major == MAJOR_VERSION && minor == MINOR_VERSION && PATCH_VERSION == patch;
 }
 
 bool is_short(const char *flag) {

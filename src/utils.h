@@ -9,7 +9,8 @@
 #define MINOR_VERSION (4)    // Changes when functionality is added in a backwards compatible manner.
 #define PATCH_VERSION (0)    // Changes when backwards compatible bug fixes and refactors are made.
 
-bool version_is_current(int major, int minor);
+bool version_is_compatible(int major, int minor);
+bool version_is_current(int major, int minor, int patch);
 
 #define BUILDX_DIR ".buildx"
 
