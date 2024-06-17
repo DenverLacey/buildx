@@ -76,6 +76,16 @@ void logprint(LogLevel lv, const char *__restrict fmt, ...) {
     va_end(args);
 }
 
+int prompt(const char *__restrict fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+        printf("%sINFO%s: ", log_level_colors[LOG_INFO], COLOR_RESET);
+        vprintf(fmt, args);
+        int c = fgetc(stdin);
+    va_end(args);
+    return c;
+}
+
 Dialect dialect_from_str(const char *s) {
     for (int i = 0; i < DIALECT_COUNT; i++) {
         if (strcasecmp(s, dialect_names[i]) == 0) {

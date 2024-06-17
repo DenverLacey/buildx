@@ -100,28 +100,29 @@ static bool read_premake_file(PremakeSettings *pms) {
         twString line = (twString){.bytes = line_cstr, .length = linelen - 1};
         line = twTrimLeftUTF8(line);
 
+        // TODO: Fix bug: check for both single and double quote delims
         if (twStartsWith(line, twStatic("project"))) {
-            twSplitUTF8(line, '"', &line);
-            twString exe = twSplitUTF8(line, '"', NULL);
+            twSplitAnyASCII(line, "'\"", &line);
+            twString exe = twSplitUTF8(line, line.bytes[-1], NULL);
             pms->exe_name = twDupToC(exe);
         } else if (twStartsWith(line, twStatic("cdialect")) ||
                    twStartsWith(line, twStatic("cppdialect")))
         {
             dialect_set = true;
-            twSplitUTF8(line, '"', &line);
-            const char *dialect = twDupToC(twSplitUTF8(line, '"', NULL));
+            twSplitAnyASCII(line, "'\"", &line);
+            const char *dialect = twDupToC(twSplitUTF8(line, line.bytes[-1], NULL));
             pms->dialect = dialect_from_str(dialect);
             free((void*)dialect);
         } else if (twStartsWith(line, twStatic("includedirs"))) {
-            line = twDrop(line, sizeof("includedirs")-1);
+            line = twDrop(line, sizeof("includedirs") - 1);
 
             do {
-                line = twTrimLeftUTF8(line);
                 if (line.length == 0) {
                     linelen = getline(&line_cstr, &linecap, f);
                     line.bytes = line_cstr;
                     line.length = linelen - 1;
                 }
+                line = twTrimLeftUTF8(line);
             } while (line.length == 0);
             
             if (twFirstUTF8(line) != '{') {
@@ -132,12 +133,12 @@ static bool read_premake_file(PremakeSettings *pms) {
             line = twDrop(line, 1); // eat '{'
 
             do {
-                line = twTrimLeftUTF8(line);
                 if (line.length == 0) {
                     linelen = getline(&line_cstr, &linecap, f);
                     line.bytes = line_cstr;
                     line.length = linelen - 1;
                 }
+                line = twTrimLeftUTF8(line);
             } while (line.length == 0);
 
             twChar delim = twFirstUTF8(line);
@@ -151,8 +152,8 @@ static bool read_premake_file(PremakeSettings *pms) {
             pms->src_dir = twDupToC(twSplitUTF8(line, delim, NULL));
         } else if (twStartsWith(line, twStatic("targetdir")) && !targetdir_done) {
             targetdir_done = true;
-            twSplitUTF8(line, '"', &line);
-            twString out_dir = twSplitUTF8(line, '"', NULL);
+            twSplitAnyASCII(line, "'\"", &line);
+            twString out_dir = twSplitUTF8(line, line.bytes[-1], NULL);
             out_dir = twSplitUTF8(out_dir, '/', NULL); // WARN: Robustness
             pms->out_dir = twDupToC(out_dir);
         }
@@ -208,7 +209,7 @@ static bool create_conf_from_premake_file(Conf  *conf) {
 static bool cmd_project_upgrade(void) {
     const char *build_dir = NULL;
     struct stat s = {0};
-    if (stat("./" BUILDX_DIR, &s) != 0) {
+    if (stat("./" BUILDX_DIR, &s) == 0) {
         if (!S_ISDIR(s.st_mode)) {
             logprint(
                 LOG_FATAL,
@@ -217,7 +218,7 @@ static bool cmd_project_upgrade(void) {
             return false;
         }
         build_dir = BUILDX_DIR;
-    } else if (stat("./build", &s) != 0) {
+    } else if (stat("./build", &s) == 0) {
         if (S_ISDIR(s.st_mode)) {
             build_dir = "build";
         }
@@ -247,17 +248,19 @@ static bool cmd_project_upgrade(void) {
         }
     }
 
-    if (!conf_was_created && version_is_current(conf.buildx.major, conf.buildx.minor, conf.buildx.patch)) {
+    if (!conf_was_created &&
+        (strcmp(build_dir, BUILDX_DIR) == 0) &&
+        version_is_current(conf.buildx.major, conf.buildx.minor, conf.buildx.patch))
+    {
         return true;
     }
 
     // Delete old build directory
-    {
+    if (build_dir) {
         char cmd[PATH_MAX];
         snprintf(cmd, sizeof(cmd), "rm -rf ./%s", build_dir);
 
-        printf("Delete old build directory '%s' [y/n]: ", build_dir);
-        int c = fgetc(stdin);
+        int c = prompt("Delete old build directory '%s' [y/n]: ", build_dir);
         if (c != 'y' && c != 'Y') {
             logprint(LOG_INFO, "Stopping upgrade because of user response.");
             logprint(LOG_INFO, "If you want to upgrade, either preserve old build directory");

@@ -41,6 +41,7 @@ typedef enum LogLevel {
 } LogLevel;
 
 void logprint(LogLevel lv, const char *__restrict fmt, ...);
+int prompt(const char *__restrict fmt, ...);
 
 typedef enum Dialect {
     C99 = 0,
