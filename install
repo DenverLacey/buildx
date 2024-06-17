@@ -2,5 +2,5 @@
 
 INSTALL_DIR=/usr/local/bin/
 
-cp bin/release/bx $INSTALL_DIR/bx
+ln -f bin/release/bx $INSTALL_DIR/bx
 

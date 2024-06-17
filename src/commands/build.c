@@ -95,7 +95,7 @@ static const char *build_cmd_fmt =
     "premake5 gmake2; "
     "premake5 export-compile-commands; "
     "cp compile_commands/debug.json compile_commands.json; "
-    "rm -rf ./compile_commands"
+    "rm -r compile_commands; "
     "make config=%s";
 
 bool cmd_build(ArgIter *args) {

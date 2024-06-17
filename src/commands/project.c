@@ -280,8 +280,14 @@ static bool cmd_project_upgrade(void) {
         return false;
     }
 
-    // WARN: If the conf file is complete this suggests that things are compatible enough to not make any changes.
-    // This could prove to be wrong at some point but for right now this is what we're doing.
+    char real_proj_dir[PATH_MAX];
+    conf.proj.proj_dir = realpath(".", real_proj_dir);
+    if (!conf.proj.proj_dir) {
+        const char *err = strerror(errno);
+        logprint(LOG_ERROR, "Failed to canonicalize project directory: %s.", err);
+        return false;
+    }
+
     return write_conf("./"BUILDX_DIR"/conf.ini", conf.proj);
 }
 
