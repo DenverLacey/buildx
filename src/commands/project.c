@@ -174,7 +174,7 @@ CLEAN_UP_AND_RETURN:
 }
 
 static bool create_conf_from_premake_file(Conf  *conf) {
-    static_assert(MAJOR_VERSION == 0 && MINOR_VERSION == 4 && PATCH_VERSION == 0, "Version has changed. Confirm this is still correct.");
+    static_assert(MAJOR_VERSION == 0 && MINOR_VERSION == 4 && PATCH_VERSION == 1, "Version has changed. Confirm this is still correct.");
 
     PremakeSettings pms;
     if (!read_premake_file(&pms)) {
