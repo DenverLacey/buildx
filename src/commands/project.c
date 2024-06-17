@@ -113,8 +113,42 @@ static bool read_premake_file(PremakeSettings *pms) {
             pms->dialect = dialect_from_str(dialect);
             free((void*)dialect);
         } else if (twStartsWith(line, twStatic("includedirs"))) {
-            // TODO: Actually read it
-            pms->src_dir = "src";
+            line = twDrop(line, sizeof("includedirs")-1);
+
+            do {
+                line = twTrimLeftUTF8(line);
+                if (line.length == 0) {
+                    linelen = getline(&line_cstr, &linecap, f);
+                    line.bytes = line_cstr;
+                    line.length = linelen - 1;
+                }
+            } while (line.length == 0);
+            
+            if (twFirstUTF8(line) != '{') {
+                logprint(LOG_ERROR, "Invalid premake5.lua file: No '{' after 'includedirs'.");
+                RETURN(false);
+            }
+
+            line = twDrop(line, 1); // eat '{'
+
+            do {
+                line = twTrimLeftUTF8(line);
+                if (line.length == 0) {
+                    linelen = getline(&line_cstr, &linecap, f);
+                    line.bytes = line_cstr;
+                    line.length = linelen - 1;
+                }
+            } while (line.length == 0);
+
+            twChar delim = twFirstUTF8(line);
+            if (delim != '"' && delim != '\'') {
+                logprint(LOG_ERROR, "Invalid premake5.lua file: Expected string literal.");
+                RETURN(false);
+            }
+
+            line = twDrop(line, 1); // eat delim
+
+            pms->src_dir = twDupToC(twSplitUTF8(line, delim, NULL));
         } else if (twStartsWith(line, twStatic("targetdir")) && !targetdir_done) {
             targetdir_done = true;
             twSplitUTF8(line, '"', &line);
@@ -138,7 +172,7 @@ CLEAN_UP_AND_RETURN:
     return result;
 }
 
-static bool cmd_project_upgrade_no_conf(void) {
+static bool create_conf_from_premake_file(Conf  *conf) {
     static_assert(MAJOR_VERSION == 0 && MINOR_VERSION == 4 && PATCH_VERSION == 0, "Version has changed. Confirm this is still correct.");
 
     PremakeSettings pms;
@@ -147,37 +181,31 @@ static bool cmd_project_upgrade_no_conf(void) {
     }
 
     char proj_dir_buf[PATH_MAX];
-    const char *proj_dir = getcwd(proj_dir_buf, sizeof(proj_dir_buf));
-    if (!proj_dir) {
+    const char *proj_dir_in_buf = getcwd(proj_dir_buf, sizeof(proj_dir_buf));
+    if (!proj_dir_in_buf) {
         const char *err = strerror(errno);
         logprint(LOG_FATAL, "Failed to get CWD: %s.", err);
         return false;
     }
 
-    return write_conf("./"BUILDX_DIR"/conf.ini", (ProjConf) {
-        .proj_dir = proj_dir,
-        .exe_name = pms.exe_name,
-        .out_dir = pms.out_dir,
-        .src_dir = pms.src_dir,
-        .dialect = pms.dialect,
-    });
+    char *proj_dir = malloc(strlen(proj_dir_in_buf));
+    strcpy(proj_dir, proj_dir_in_buf);
+
+    *conf = (Conf) {
+        .buildx = (BuildxConf){.major = MAJOR_VERSION, .minor = MINOR_VERSION, .patch = PATCH_VERSION},
+        .proj = (ProjConf) {
+            .proj_dir = proj_dir,
+            .exe_name = pms.exe_name,
+            .out_dir = pms.out_dir,
+            .src_dir = pms.src_dir,
+            .dialect = pms.dialect,
+        }
+    };
+
+    return true;
 }
 
-static bool cmd_project_upgrade_with_conf(ArgIter *args, CmdProjectData *cmd_data, Conf conf) {
-    UNUSED(args, cmd_data);
-
-    if (version_is_current(conf.buildx.major, conf.buildx.minor, conf.buildx.patch)) {
-        return true;
-    }
-
-    // WARN: If the conf file is complete this suggests that things are compatible enough to not make any changes.
-    // This could prove to be wrong at some point but for right now this is what we're doing.
-    return write_conf("./"BUILDX_DIR"/conf.ini", conf.proj);
-}
-
-static bool cmd_project_upgrade(ArgIter *args, CmdProjectData *cmd_data) {
-    UNUSED(args, cmd_data);
-
+static bool cmd_project_upgrade(void) {
     const char *build_dir = NULL;
     struct stat s = {0};
     if (stat("./" BUILDX_DIR, &s) != 0) {
@@ -195,65 +223,63 @@ static bool cmd_project_upgrade(ArgIter *args, CmdProjectData *cmd_data) {
         }
     }
 
+    Conf conf = {0};
+    bool conf_was_created = false;
     if (build_dir) {
         char conf_path[PATH_MAX];
         snprintf(conf_path, sizeof(conf_path), "./%s/conf.ini", build_dir);
 
         if (access(conf_path, F_OK) != 0) {
-            if (!cmd_project_upgrade_no_conf()) {
+            conf_was_created = true;
+            if (!create_conf_from_premake_file(&conf)) {
                 return false;
             }
-        }
-
-        Conf conf = {0};
-        if (!read_conf(conf_path, &conf)) {
-            if (!cmd_project_upgrade_no_conf()) {
+        } else if (!read_conf(conf_path, &conf)) {
+            conf_was_created = true;
+            if (!create_conf_from_premake_file(&conf)) {
                 return false;
             }
-        }
-
-        // Delete old build directory
-        {
-            char cmd[PATH_MAX];
-            snprintf(cmd, sizeof(cmd), "rm -rf ./%s", build_dir);
-
-            printf("Delete old build directory '%s' [y/n]: ", build_dir);
-            int c = fgetc(stdin);
-            if (c != 'y' && c != 'Y') {
-                logprint(LOG_INFO, "Stopping upgrade because of user response.");
-                logprint(LOG_INFO, "If you want to upgrade, either preserve old build directory");
-                logprint(LOG_INFO, "and rerun or let upgrade automatically replace it.");
-                return false;
-            }
-
-            if (system(cmd) == -1) {
-                logprint(LOG_ERROR, "Failed to delete old build directory.");
-                return false;
-            }
-        }
-
-        if (mkdir(BUILDX_DIR, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == -1) {
-            const char *err = strerror(errno);
-            logprint(LOG_ERROR, "Failed to create new build directory: %s.", err);
-            return false;
-        }
-
-        if (!cmd_project_upgrade_with_conf(args, cmd_data, conf)) {
-            return false;
         }
     } else {
-        if (mkdir(BUILDX_DIR, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == -1) {
-            const char *err = strerror(errno);
-            logprint(LOG_ERROR, "Failed to create new build directory: %s.", err);
-            return false;
-        }
-
-        if (!cmd_project_upgrade_no_conf()) {
+        conf_was_created = true;
+        if (!create_conf_from_premake_file(&conf)) {
             return false;
         }
     }
 
-    return true;
+    if (!conf_was_created && version_is_current(conf.buildx.major, conf.buildx.minor, conf.buildx.patch)) {
+        return true;
+    }
+
+    // Delete old build directory
+    {
+        char cmd[PATH_MAX];
+        snprintf(cmd, sizeof(cmd), "rm -rf ./%s", build_dir);
+
+        printf("Delete old build directory '%s' [y/n]: ", build_dir);
+        int c = fgetc(stdin);
+        if (c != 'y' && c != 'Y') {
+            logprint(LOG_INFO, "Stopping upgrade because of user response.");
+            logprint(LOG_INFO, "If you want to upgrade, either preserve old build directory");
+            logprint(LOG_INFO, "and rerun or let upgrade automatically replace it.");
+            return false;
+        }
+
+        if (system(cmd) == -1) {
+            logprint(LOG_ERROR, "Failed to delete old build directory.");
+            return false;
+        }
+    }
+
+    if (mkdir(BUILDX_DIR, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == -1) {
+        const char *err = strerror(errno);
+        logprint(LOG_ERROR, "Failed to create new build directory: %s.", err);
+        return false;
+    }
+
+    // WARN: If the conf file is complete this suggests that things are compatible enough to not make any changes.
+    // This could prove to be wrong at some point but for right now this is what we're doing.
+    return write_conf("./"BUILDX_DIR"/conf.ini", conf.proj);
 }
 
 // TODO: 
@@ -332,7 +358,7 @@ bool cmd_project(ArgIter *args) {
             return false;
         }
 
-        if (!cmd_project_upgrade(args, &cmd_data)) {
+        if (!cmd_project_upgrade()) {
             return false;
         }
     } else {
