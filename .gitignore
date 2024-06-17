@@ -9,4 +9,5 @@ compile_commands.json
 examples/
 tests/
 .vscode/
+.buildx/
 

@@ -4,13 +4,9 @@
 #include <stdlib.h>
 #include <strings.h>
 
-typedef enum BuildMode {
-    BM_DEBUG,
-    BM_RELEASE
-} BuildMode;
-
 typedef struct CmdBuildData {
-    BuildMode mode;
+    bool build_debug;
+    bool build_release;
 } CmdBuildData;
 
 static void usage_build(void) {
@@ -32,7 +28,7 @@ static bool cmd_build_debug(ArgIter *args, void *cmd_data) {
     UNUSED(args);
 
     CmdBuildData *build_data = (CmdBuildData *)cmd_data;
-    build_data->mode = BM_DEBUG;
+    build_data->build_debug = true;
 
     return true;
 }
@@ -41,7 +37,7 @@ static bool cmd_build_release(ArgIter *args, void *cmd_data) {
     UNUSED(args);
 
     CmdBuildData *build_data = (CmdBuildData *)cmd_data;
-    build_data->mode = BM_RELEASE;
+    build_data->build_release = true;
 
     return true;
 }
@@ -107,14 +103,25 @@ bool cmd_build(ArgIter *args) {
         return false;
     }
 
-    const char *mode_str = cmd_data.mode == BM_RELEASE ? "release" : "debug";
+    if (!cmd_data.build_debug && !cmd_data.build_release) {
+        cmd_data.build_debug = true;
+    }
 
     char cmd[2048];
-    snprintf(cmd, sizeof(cmd), build_cmd_fmt, mode_str);
+    if (cmd_data.build_debug) {
+        snprintf(cmd, sizeof(cmd), build_cmd_fmt, "debug");
+        if (system(cmd) == -1) {
+            logprint(LOG_FATAL, "Failed to run build command '%s'.", cmd);
+            return false;
+        }
+    }
 
-    if (system(cmd) == -1) {
-        logprint(LOG_FATAL, "Failed to run build command '%s'.", cmd);
-        return false;
+    if (cmd_data.build_release) {
+        snprintf(cmd, sizeof(cmd), build_cmd_fmt, "release");
+        if (system(cmd) == -1) {
+            logprint(LOG_FATAL, "Failed to run build command '%s'.", cmd);
+            return false;
+        }
     }
 
     return true;
