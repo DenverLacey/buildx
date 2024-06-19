@@ -1,4 +1,5 @@
 #include "utils.h"
+
 #include <stdio.h>
 #include <ctype.h>
 #include <stdarg.h>
@@ -27,6 +28,33 @@ bool is_long(const char *flag) {
     if (flag[0] == '\0') return false;
     if (flag[1] == '\0') return false;
     return flag[0] == '-' && flag[1] == '-';
+}
+
+bool process_options(ArgIter *args, void *cmd_data, const CmdFlagInfo *flags, size_t flags_len) {
+    while (args->length != 0) {
+        bool flag_found = false;
+
+        for (size_t i = 0; i < flags_len; i++) {
+            const CmdFlagInfo *flag = &flags[i];
+            if (iter_check_flags(args, flag->names)) {
+                flag_found = true;
+                iter_next(args);
+                bool ok = flag->cmd(args, cmd_data);
+                if (!ok) {
+                    return false;
+                }
+                iter_back(args);
+            }
+        }
+
+        if (!flag_found) {
+            break;
+        }
+
+        iter_next(args);
+    }
+
+    return true;
 }
 
 char *strupper(char *s) {

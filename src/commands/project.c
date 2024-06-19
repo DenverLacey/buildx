@@ -45,33 +45,6 @@ static const CmdFlagInfo flags[] = {
 
 static const size_t flags_length = sizeof(flags) / sizeof(flags[0]);
 
-static bool process_options(ArgIter *args, CmdProjectData *cmd_data) {
-    UNUSED(cmd_data);
-
-    while (args->length != 0) {
-        bool flag_found = false;
-
-        for (size_t i = 0; i < flags_length; i++) {
-            const CmdFlagInfo *flag = &flags[i];
-            if (iter_check_flags(args, flag->names)) {
-                iter_next(args);
-                flag_found = true;
-                bool ok = flag->cmd(args, cmd_data);
-                if (!ok) {
-                    usage_project();
-                    return false;
-                }
-            }
-        }
-
-        if (!flag_found) {
-            break;
-        }
-    }
-
-    return true;
-}
-
 typedef struct {
     const char *exe_name;
     Dialect dialect;
@@ -100,7 +73,6 @@ static bool read_premake_file(PremakeSettings *pms) {
         twString line = (twString){.bytes = line_cstr, .length = linelen - 1};
         line = twTrimLeftUTF8(line);
 
-        // TODO: Fix bug: check for both single and double quote delims
         if (twStartsWith(line, twStatic("project"))) {
             twSplitAnyASCII(line, "'\"", &line);
             twString exe = twSplitUTF8(line, line.bytes[-1], NULL);
@@ -174,7 +146,7 @@ CLEAN_UP_AND_RETURN:
 }
 
 static bool create_conf_from_premake_file(Conf  *conf) {
-    static_assert(MAJOR_VERSION == 0 && MINOR_VERSION == 4 && PATCH_VERSION == 2, "Version has changed. Confirm this is still correct.");
+    static_assert(MAJOR_VERSION == 0 && MINOR_VERSION == 5 && PATCH_VERSION == 0, "Version has changed. Confirm this is still correct.");
 
     PremakeSettings pms;
     if (!read_premake_file(&pms)) {
@@ -363,7 +335,8 @@ bool cmd_project(ArgIter *args) {
     CmdProjectData cmd_data = {0};
 
     if (iter_match(args, "upgrade")) {
-        if (!process_options(args, &cmd_data)) {
+        if (!process_options(args, &cmd_data, flags, flags_length)) {
+            usage_project();
             return false;
         }
 
@@ -371,7 +344,8 @@ bool cmd_project(ArgIter *args) {
             return false;
         }
     } else {
-        if (!process_options(args, &cmd_data)) {
+        if (!process_options(args, &cmd_data, flags, flags_length)) {
+            usage_project();
             return false;
         }
 

@@ -27,6 +27,11 @@ const char *iter_next(ArgIter *iter) {
     return *iter->args++;
 }
 
+void iter_back(ArgIter *iter) {
+    iter->length++;
+    iter->args--;
+}
+
 bool iter_match(ArgIter *iter, const char *arg) {
     if (iter->length == 0) {
         return false;

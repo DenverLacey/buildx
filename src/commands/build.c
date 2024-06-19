@@ -62,31 +62,6 @@ static const CmdFlagInfo flags[] = {
 
 static const size_t flags_length = sizeof(flags) / sizeof(flags[0]);
 
-static bool process_options(ArgIter *args, CmdBuildData *cmd_data) {
-    while (args->length != 0) {
-        bool flag_found = false;
-
-        for (size_t i = 0; i < flags_length; i++) {
-            const CmdFlagInfo *flag = &flags[i];
-            if (iter_check_flags(args, flag->names)) {
-                iter_next(args);
-                flag_found = true;
-                bool ok = flag->cmd(args, cmd_data);
-                if (!ok) {
-                    usage_build();
-                    return false;
-                }
-            }
-        }
-
-        if (!flag_found) {
-            break;
-        }
-    }
-
-    return true;
-}
-
 static const char *build_cmd_fmt = 
     "premake5 gmake2; "
     "premake5 export-compile-commands; "
@@ -98,8 +73,9 @@ bool cmd_build(ArgIter *args) {
     bool ok;
     CmdBuildData cmd_data = {0};
 
-    ok = process_options(args, &cmd_data);
+    ok = process_options(args, &cmd_data, flags, flags_length);
     if (!ok) {
+        usage_build();
         return false;
     }
 

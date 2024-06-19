@@ -13,6 +13,8 @@ void usage(void) {
     printf("             Use `bx run --help` for more info.\n");
     printf("    project: Change configuration of project.\n");
     printf("             Use `bx project --help` for more info.\n");
+    printf("    install: Install executable.\n");
+    printf("             Use `bx install --help` for more info.\n");
     printf("    help:    Show this help message.\n");
     printf("    version: Show buildx version.\n");
 }
@@ -32,13 +34,15 @@ int main(int argc, const char **argv) {
     }
 
     if (iter_match(&args, "new")) {
-        cmd_new(&args, bx_path);
+        cmd_new(&args);
     } else if (iter_match(&args, "build")) {
         cmd_build(&args);
     } else if (iter_match(&args, "run")) {
         cmd_run(&args);
     } else if (iter_match(&args, "project")) {
         cmd_project(&args);
+    } else if (iter_match(&args, "install")) {
+        cmd_install(&args);
     } else if (iter_match(&args, "help")) {
         usage();
     } else if (iter_match(&args, "version")) {

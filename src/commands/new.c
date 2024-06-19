@@ -155,7 +155,8 @@ static const CmdFlagInfo flags[] = {
 
 static const size_t flags_length = sizeof(flags) / sizeof(flags[0]);
 
-bool process_options(ArgIter *args, const char *bx_path, CmdNewData *cmd_data) {
+static bool process_new_options(ArgIter *args, CmdNewData *cmd_data) {
+#if 0
     while (args->length != 0) {
         bool flag_found = false;
 
@@ -176,6 +177,12 @@ bool process_options(ArgIter *args, const char *bx_path, CmdNewData *cmd_data) {
             break;
         }
     }
+#endif
+
+    if (!process_options(args, cmd_data, flags, flags_length)) {
+        usage_new();
+        return false;
+    }
 
     cmd_data->create_proj_dir = args->length != 0;
 
@@ -187,37 +194,29 @@ bool process_options(ArgIter *args, const char *bx_path, CmdNewData *cmd_data) {
         }
 
         if (strcmp(cmd_data->proj_path, ".") == 0) {
-            chdir(bx_path);
-            char path_buf[PATH_MAX];
-            const char *cwd = getcwd(path_buf, PATH_MAX);
-            if (!cwd) {
+            char *proj_path = malloc(PATH_MAX);
+            cmd_data->proj_path = getcwd(proj_path, PATH_MAX);
+            if (!cmd_data->proj_path) {
+                logprint(LOG_FATAL, "Failed to get cwd.");
+                return false;
+            }
+        } else {
+            char cwd[PATH_MAX];
+            if (!getcwd(cwd, PATH_MAX)) {
                 logprint(LOG_FATAL, "Failed to get cwd.");
                 return false;
             }
 
-            char *real_buf = malloc(PATH_MAX); // LEAK
-            cmd_data->proj_path = realpath(cwd, real_buf);
-            if (!cmd_data->proj_path) {
-                const char *err = strerror(errno);
-                logprint(LOG_FATAL, "Failed to canonicalize cwd: %s.", err);
-                return false;
-            }
-        }
+            char *proj_path = malloc(PATH_MAX);
+            snprintf(proj_path, PATH_MAX, "%s/%s", cwd, cmd_data->proj_path);
 
+            cmd_data->proj_path = proj_path;
+        }
     } else {
-        chdir(bx_path);
-        char path_buf[PATH_MAX];
-        const char *cwd = getcwd(path_buf, PATH_MAX);
-        if (!cwd) {
-            logprint(LOG_FATAL, "Failed to get cwd.");
-            return false;
-        }
-
-        char *real_buf = malloc(PATH_MAX); // LEAK
-        cmd_data->proj_path = realpath(cwd, real_buf);
+        char *proj_path = malloc(PATH_MAX);
+        cmd_data->proj_path = getcwd(proj_path, PATH_MAX);
         if (!cmd_data->proj_path) {
-            const char *err = strerror(errno);
-            logprint(LOG_FATAL, "Failed to canonicalize cwd: %s.", err);
+            logprint(LOG_FATAL, "Failed to get cwd.");
             return false;
         }
     }
@@ -314,17 +313,14 @@ bool make_config_file(CmdNewData *cmd_data) {
         .dialect = cmd_data->dialect,
     };
 
-    char cwd[PATH_MAX];
-    if (!getcwd(cwd, sizeof(cwd))) {
-        const char *err = strerror(errno);
-        logprint(LOG_FATAL, "Failed to get CWD: %s.", err);
-    }
-
     if (cmd_data->proj_path) {
-        char proj_dir[PATH_MAX];
-        snprintf(proj_dir, sizeof(proj_dir), "%s/%s", cwd, cmd_data->proj_path);
-        conf.proj_dir = proj_dir;
+        conf.proj_dir = cmd_data->proj_path;
     } else {
+        char cwd[PATH_MAX];
+        if (!getcwd(cwd, sizeof(cwd))) {
+            const char *err = strerror(errno);
+            logprint(LOG_FATAL, "Failed to get CWD: %s.", err);
+        }
         conf.proj_dir = cwd;
     }
 
@@ -446,11 +442,11 @@ CLEAN_UP_AND_RETURN:
     return result;
 }
 
-bool cmd_new(ArgIter *args, const char *bx_path) {
+bool cmd_new(ArgIter *args) {
     bool ok;
     CmdNewData cmd_data = {0};
     
-    ok = process_options(args, bx_path, &cmd_data);
+    ok = process_new_options(args, &cmd_data);
     if (!ok) {
         return false;
     }
@@ -477,13 +473,6 @@ bool cmd_new(ArgIter *args, const char *bx_path) {
 
     return true;
 }
-
-/* TODO:
-*  What should be done in the case where the project directory already exists?
-*  Is this an edge case we want to support?
-*  I could see wanting to run `new` command more than once in order to update
-*  things, but perhaps that should be its own command.
-*/
 
 /* TODO:
 *  Use the new command to set the backend: make, vsproj, xcode, etc.

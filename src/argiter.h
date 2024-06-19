@@ -11,6 +11,7 @@ typedef struct ArgIter {
 ArgIter iter_create(int argc, const char **argv);
 const char *iter_peek(ArgIter *iter);
 const char *iter_next(ArgIter *iter);
+void iter_back(ArgIter *iter);
 bool iter_match(ArgIter *iter, const char *arg);
 bool iter_check_flags(ArgIter *iter, const char *const *flags);
 

@@ -3,11 +3,13 @@
 
 #include <stdbool.h>
 
+#include "argiter.h"
+#include "commands/cmd.h"
 #include "twine.h"
 
 #define MAJOR_VERSION (0)    // Changes when incompatible API changes are made.
-#define MINOR_VERSION (4)    // Changes when functionality is added in a backwards compatible manner.
-#define PATCH_VERSION (2)    // Changes when backwards compatible bug fixes and refactors are made.
+#define MINOR_VERSION (5)    // Changes when functionality is added in a backwards compatible manner.
+#define PATCH_VERSION (0)    // Changes when backwards compatible bug fixes and refactors are made.
 
 bool version_is_compatible(int major, int minor);
 bool version_is_current(int major, int minor, int patch);
@@ -27,6 +29,8 @@ bool version_is_current(int major, int minor, int patch);
 
 bool is_short(const char *flag);
 bool is_long(const char *flag);
+
+bool process_options(ArgIter *args, void *cmd_data, const CmdFlagInfo *flags, size_t flags_len);
 
 char *strupper(char *s);
 bool starts_with(const char *s, const char *prefix);
