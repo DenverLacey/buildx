@@ -260,7 +260,7 @@ static bool cmd_project_upgrade(void) {
         return false;
     }
 
-    return write_conf("./"BUILDX_DIR"/conf.ini", conf.proj);
+    return write_conf(CONF_DIR, conf.proj);
 }
 
 // TODO: 
@@ -272,16 +272,14 @@ static bool cmd_project_change(ArgIter *args, CmdProjectData *cmd_data, twString
     bool result = true;
     FILE *f = NULL;
 
-    static const char *conf_path = "./.buildx/conf.ini";
-
     char bufmem[PATH_MAX*2];
     twStringBuf buf = twStaticBuf(bufmem);
 
     // Read in conf file and change the desired line
     {
-        f = fopen(conf_path, "r");
+        f = fopen(CONF_DIR, "r");
         if (!f) {
-            logprint(LOG_FATAL, "Failed to open conf.ini file at '%s'.", conf_path);
+            logprint(LOG_FATAL, "Failed to open conf.ini file at '%s'.", CONF_DIR);
             RETURN(false);
         }
 
@@ -359,17 +357,12 @@ bool cmd_project(ArgIter *args) {
                 return false;
             }
         } else {
-            const char *conf_path = "./" BUILDX_DIR "/conf.ini";
-
-            if (access(conf_path, F_OK) != 0) {
-                logprint(LOG_FATAL, "Could not find conf.ini file at '%s'.", conf_path);
+            if (access(CONF_DIR, F_OK) != 0) {
+                logprint(LOG_FATAL, "Could not find conf.ini file at '%s'.", CONF_DIR);
                 return false;
             }
 
-            char cmd[PATH_MAX];
-            snprintf(cmd, sizeof(cmd), "cat %s", conf_path);
-
-            if (system(cmd) == -1) {
+            if (system("cat "CONF_DIR) == -1) {
                 logprint(LOG_FATAL, "Failed to print conf.ini file.");
                 return false;
             }

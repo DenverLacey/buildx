@@ -101,7 +101,7 @@ bool cmd_install(ArgIter *args) {
     }
 
     Conf conf;
-    if (!read_conf(BUILDX_DIR"/conf.ini", &conf)) {
+    if (!read_conf(CONF_DIR, &conf)) {
         return false;
     }
 
@@ -121,17 +121,19 @@ bool cmd_install(ArgIter *args) {
         debug_suffix = "-debug";
     }
 
+    const char *mode_str = cmd_data.debug ? "debug" : "release";
+
     char exe_dir[PATH_MAX];
     snprintf(
         exe_dir, sizeof(exe_dir),
         "%s/%s/%s/%s",
-        conf.proj.proj_dir, conf.proj.out_dir, cmd_data.debug ? "debug" : "release", conf.proj.exe_name
+        conf.proj.proj_dir, conf.proj.out_dir, mode_str, conf.proj.exe_name
     );
 
     if (access(exe_dir, F_OK) != 0) {
-        logprint(LOG_ERROR, "No %s executable to install. Please use the `bx build --%s` command and try again.",
-             cmd_data.debug ? "debug" : "release",
-             cmd_data.debug ? "debug" : "release"
+        logprint(LOG_ERROR,
+            "No %s executable to install. Please use the `bx build --%s` command and try again.",
+            mode_str, mode_str
         );
         return false;
     }

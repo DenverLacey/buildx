@@ -474,7 +474,3 @@ bool cmd_new(ArgIter *args) {
     return true;
 }
 
-/* TODO:
-*  Use the new command to set the backend: make, vsproj, xcode, etc.
-*/
-

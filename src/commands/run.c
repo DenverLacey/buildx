@@ -73,7 +73,7 @@ bool cmd_run(ArgIter *args) {
     bool ok;
     CmdRunData cmd_data = {0};
 
-    static const char *conf_path = BUILDX_DIR "/conf.ini";
+    static const char *conf_path = CONF_DIR;
     Conf conf;
     if (!read_conf(conf_path, &conf)) {
         logprint(LOG_FATAL, "Couldn't read conf.ini file at '%s'.", conf_path);

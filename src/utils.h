@@ -15,6 +15,7 @@ bool version_is_compatible(int major, int minor);
 bool version_is_current(int major, int minor, int patch);
 
 #define BUILDX_DIR ".buildx"
+#define CONF_DIR BUILDX_DIR"/conf.ini"
 
 #define UNUSED(...) \
     _Pragma("clang diagnostic push")                                           \
